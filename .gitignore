@@ -1,0 +1,9 @@
+# ignore all files in the env_variables directory
+env_variables/
+# ignore all json files in the blocks_data directory
+blocks_data/*.json
+# ignore all json files in the blocks_data/reports directory
+blocks_data/reports/*.json
+# ignore all python environment files
+*.venv
+.cryo-and-python
