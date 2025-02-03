@@ -3,7 +3,7 @@ env_variables/
 # ignore all json files in the blocks_data directory
 blocks_data/*.json
 # ignore all json files in the blocks_data/reports directory
-blocks_data/reports/*.json
+blocks_data/.cryo/reports/*.json
 # ignore all python environment files
 *.venv
 .cryo-and-python
