@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "defi with chainstack + cryo"
+version = "0.1.0"
+description = "chainstack/python/cryo"
+authors = ["Adrien Marjollet <adrien.marjollet1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0.0"
+maturin = "^1.8.1"
+cryo = "^0.3.2"
+python-dotenv = "^1.0.1"
+pandas = "^2.2.3"
+polars = "^1.21.0"
+plotly = "^6.0.0"
+pyarrow = "^19.0.0"
+web3 = "^7.8.0"
+matplotlib = "^3.10.0"
+pyfixture = "^0.7"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

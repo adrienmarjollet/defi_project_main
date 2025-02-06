@@ -1,9 +1,29 @@
-# ignore all files in the env_variables directory
-env_variables/
+# ignore .env files
+*.env
+# ignore all python environment files and files that start with .venv
+*.venv*
+
+# ignore compiled python files and the cache directories
+__pycache__/
+*.pyc
+
+# ignore TODO list
+TODO.md
+
 # ignore all json files in the blocks_data directory
 blocks_data/*.json
 # ignore all json files in the blocks_data/reports directory
+blocks_data/.cryo/*.json
 blocks_data/.cryo/reports/*.json
-# ignore all python environment files
-*.venv
-.cryo-and-python
+examples/blocks_data/.cryo/*.json
+examples/blocks_data/*.json
+#ignore cryo reports from the command line tool
+.cryo/reports/*.json
+
+
+# ignore all json files in the blocks_data and examples/blocks_data directories and their subdirectories
+blocks_data/**/*.json
+examples/blocks_data/**/*.json
+# ignore cryo reports from the command line tool
+.cryo/reports/*.json
+
