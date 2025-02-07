@@ -2,18 +2,30 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-############
-## GENERAL FUNCTIONS
-#############
+from config import PROJECT_ROOT_FOLDER
+
+#####################
+# GENERAL FUNCTIONS #
+#####################
 
 
-def find_project_root_path(marker_file='pyproject.toml'):
-    current_path = Path(__file__).resolve().parent
-    for parent in current_path.parents:
-        if (parent / marker_file).exists():
-            return parent
-    raise FileNotFoundError(f'{marker_file} not found in the directory tree')
-
+def find_project_root_path(stop_folder=PROJECT_ROOT_FOLDER, initial_path='.',  marker_file='pyproject.toml'):
+    """
+    Find the project root path by looking for a marker file in the directory tree, 
+    starting from the initial path and searching all directories and subdirectories.
+    Also search backwards towards the root directory.
+    Return the path of the project root directory as a Path object.
+    """
+    initial_path = Path(initial_path).resolve()
+    # Search backwards (upwards towards the root directory)
+    current_path = initial_path
+    while current_path != current_path.parent:
+        if (current_path / marker_file).exists():
+            return current_path
+        current_path = current_path.parent
+        if stop_folder and stop_folder == current_path.name:
+            break
+    raise FileNotFoundError(f'{marker_file} not found in the directory tree starting from {initial_path}')
 
 
 def load_env_variables(root_path, list_env_vars):
