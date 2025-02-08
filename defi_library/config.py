@@ -4,6 +4,7 @@ ETH_RPC_URL = "ETH_RPC"
 
 WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 
+# TODO: learn about ABI and checkout what is the best way to store it or if I need to fetch it for each contracts
 ABI_STANDARD_ERC20 = [
     {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
     {

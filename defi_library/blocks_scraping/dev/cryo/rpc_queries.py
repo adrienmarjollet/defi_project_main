@@ -11,6 +11,14 @@ from common.misc import find_project_root_path, load_env_variables
 from blocks_scraping.dev.web3.web3_queries import Web3Queries
 
 # TODO: improve init, dev fetch_erc20_balances method
+# TODO: adapt for multiple contract and make unittest for several cases
+# TODO: generalizable it to several contracts ?
+# TODO: once this is done, unittest it.
+# TODO: find a way to cache the data (try postgresSQL)
+# TODO: improve the data saving
+# TODO test cryo features for timestamps in UNIX
+# TODO handle errors
+# TODO: adapt it for several adresees and chec batches, if not -> write a method that does that effectively.
 
 
 class CryoTools:
@@ -20,14 +28,11 @@ class CryoTools:
         self._web3_queries = Web3Queries(self._rpc_url)
         self._web3 = self._web3_queries.web3
 
-    # TODO: adapt for multiple contract and make unittest for several cases
-    # TODO generalizable it to several contracts ?
-    # TODO: once this is done, unittest it.
     def fetch_erc20_balances(
         self,
         block_range: str,
         l_addresses: List[str],
-        l_contracts: List[str],
+        contract: str,
         format="pandas",
         rps=250,
     ):
@@ -51,7 +56,7 @@ class CryoTools:
         data = cryo.collect(  # loading this might lead to big peak memory due to many columns, check cryo to reduce the columns loaded
             "erc20_balances",
             blocks=[block_range],
-            contract=l_contracts,
+            contract=contract,
             address=l_addresses,
             rpc=self._rpc_url,
             output_format=format,
@@ -59,30 +64,24 @@ class CryoTools:
             requests_per_second=rps,
         )
 
-        # TODO: improve the data saving
-        # TODO test cryo features for timestamps in UNIX
-        # TODO handle errors
         # dtypes_erc20_balances = {'chain_id': 'UInt32', 'block_number': 'UInt64', 'erc20': 'string', 'address': 'string', 'balance_string': 'string', 'balance_f64': 'float64'}
         data = data[["chain_id", "block_number", "erc20", "address", "balance_string"]]
         # replace NaN values by 0 for column balance_string
         data["balance_string"] = data["balance_string"].fillna(0)
 
-        # parse the balance_string column according to the contract
-        decimal = self._web3_queries.get_token_decimals(l_contracts)
-        print(f"decimal: {decimal} for contract {l_contracts}")
-
-        if l_contracts == WETH_ADDRESS:  # WETH
+        if contract == WETH_ADDRESS:
             data["balance"] = (
                 data["balance_string"]
                 .apply(self._web3_queries.convert_balance_to_ether)
                 .astype(float)
-            )  # needs to be generalized for several contracts
+            )
         else:
+            # parse the balance_string column according to the contract
+            decimal = self._web3_queries.get_token_decimals(contract)
             data["balance"] = data["balance_string"].astype("float64") / (10**decimal)
         # drop the balance_string column
         data = data.drop("balance_string", axis=1)
         return data
-        # TODO: adapt it for several adresees and chec batches, if not -> write a method that does that effectively.
 
         # # parse the balance_string column according to the contract
         # decimal = self._web3_queries.get_token_decimals(contract)
