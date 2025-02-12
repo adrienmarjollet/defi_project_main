@@ -1,6 +1,7 @@
 import logging
+import sqlite3
+import os
 from web3 import Web3
-
 
 # dev imports
 from config import ABI_STANDARD_ERC20, ETH_RPC_URL
@@ -11,10 +12,14 @@ from common.misc import find_project_root_path, load_env_variables
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# TODO: use sqlite with decorators for the functions ?
+
 
 class Web3Queries:
     def __init__(self, provider_url=None):
         logger.info("Initializing Web3Queries")
+
+        self.root_path = find_project_root_path()
 
         if provider_url is not None:
             logger.info(f"Using provided provider URL: {provider_url}")
@@ -35,7 +40,6 @@ class Web3Queries:
         else:
             logger.info("No provider URL provided, loading from environment variables")
             try:
-                self.root_path = find_project_root_path()
                 self._rpc_url = load_env_variables(self.root_path, [ETH_RPC_URL])[0]
                 logger.info(
                     f"Using RPC URL from environment variables: {self._rpc_url}"
@@ -47,6 +51,47 @@ class Web3Queries:
                 raise ConnectionError(
                     f"An error occurred while connecting to the Ethereum node: {e}"
                 )
+
+        # Initialize SQLite database connection
+        self.db_web3_path = os.path.join(
+            self.root_path, "data/requests_data/web3/web3_database.db"
+        )
+        self.conn = sqlite3.connect(self.db_web3_path)
+        # Create cache table if it doesn't exist
+        self.create_cache_table()
+
+    #################################
+    # DB TABLE/ CACHING / GET CACHED
+    #################################
+
+    def create_cache_table(self):
+        with self.conn:
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS contract_cache (
+                    contract_address TEXT PRIMARY KEY,
+                    abi TEXT,
+                    decimals INTEGER
+                )
+            """)
+
+    def cache_data(self, table_name, data_dict):
+        """Cache data in the database"""
+        columns = ", ".join(data_dict.keys())
+        placeholders = ", ".join("?" * len(data_dict))
+        sql = f"INSERT OR REPLACE INTO {table_name} ({columns}) VALUES ({placeholders})"
+        with self.conn:
+            self.conn.execute(sql, tuple(data_dict.values()))
+
+    def get_cached_data(self, table_name, key_column, key_value):
+        cursor = self.conn.cursor()
+        cursor.execute(
+            f"""
+            SELECT * FROM {table_name} WHERE {key_column} = ?
+        """,
+            (key_value,),
+        )
+        row = cursor.fetchone()
+        return row if row else None
 
     ################
     ## BALANCE QUERIES
