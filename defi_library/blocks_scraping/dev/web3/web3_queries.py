@@ -1,6 +1,10 @@
 import logging
 import os
+import requests
 from web3 import Web3
+
+from collections import defaultdict
+from decimal import Decimal
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -23,13 +27,11 @@ class Web3Queries:
         self.root_path = find_project_root_path()
 
         if provider_url is not None:
-            logger.info(f"Using provided provider URL: {provider_url}")
+            # logger.info(f"Using provided provider URL: {provider_url}")
             try:
                 self.web3 = Web3(Web3.HTTPProvider(provider_url))
                 if not self.web3.is_connected():
-                    raise ConnectionError(
-                        f"Unable to connect to Ethereum node at {provider_url}"
-                    )
+                    raise ConnectionError("Unable to connect to Ethereum node.")
                 logger.info("Successfully connected to Ethereum node")
             except Exception as e:
                 logger.error(
@@ -232,6 +234,54 @@ class Web3Queries:
 
     # def estimate_gas(self, transaction):
     #     return self.web3.eth.estimate_gas(transaction)
+
+    #############
+    ## EXPLO TO GET HOLDERS
+    #############
+
+    def get_rpc_response(self, method, params=[]):
+        url = self._rpc_url
+        params = params or []
+        data = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, json=data)
+        return response.json()
+
+    def get_contract_transfers(self, address, decimals=18, from_block=None):
+        """Get logs of Transfer events of a contract"""
+        from_block = from_block or "0x0"
+        transfer_hash = (
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+        )
+        params = [
+            {"address": address, "fromBlock": from_block, "topics": [transfer_hash]}
+        ]
+        logs = self.get_rpc_response("eth_getLogs", params)["result"]
+        from pprint import pprint as pp
+
+        pp(logs[100])
+        decimals_factor = Decimal("10") ** Decimal("-{}".format(decimals))
+        for log in logs:
+            log["amount"] = Decimal(str(int(log["data"], 16))) * decimals_factor
+            log["from"] = log["topics"][1][0:2] + log["topics"][1][26:]
+            log["to"] = log["topics"][2][0:2] + log["topics"][2][26:]
+        return logs
+
+    @staticmethod
+    def get_balances(transfers):
+        balances = defaultdict(Decimal)
+        for t in transfers:
+            balances[t["from"]] -= t["amount"]
+            balances[t["to"]] += t["amount"]
+        bottom_limit = Decimal("0.00000000001")
+        balances = {k: balances[k] for k in balances if balances[k] > bottom_limit}
+        return balances
+
+    def get_balances_list(self, transfers):
+        balances = self.get_balances(transfers)
+        balances = [{"address": a, "amount": b} for a, b in balances.items()]
+        balances = sorted(balances, key=lambda b: -abs(b["amount"]))
+        return balances
 
 
 if __name__ == "__main__":
