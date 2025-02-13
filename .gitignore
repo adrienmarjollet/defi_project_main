@@ -3,6 +3,9 @@
 # ignore all python environment files and files that start with .venv
 *.venv*
 
+# ignore vscode settings
+.vscode/
+
 # ignore compiled python files and the cache directories
 __pycache__/
 *.pyc
