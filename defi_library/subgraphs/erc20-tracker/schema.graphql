@@ -1,0 +1,136 @@
+# ERC-20 Token Tracker Subgraph Schema
+# Supports ETH and BSC (any EVM chain)
+
+"""
+Represents an ERC-20 token contract
+"""
+type Token @entity {
+  "Token contract address"
+  id: ID!
+  "Token name"
+  name: String!
+  "Token symbol"
+  symbol: String!
+  "Token decimals"
+  decimals: Int!
+  "Total supply in raw units"
+  totalSupply: BigInt!
+  "Number of unique holders"
+  holderCount: BigInt!
+  "All transfers involving this token"
+  transfers: [Transfer!]! @derivedFrom(field: "token")
+  "All account balances for this token"
+  balances: [AccountBalance!]! @derivedFrom(field: "token")
+}
+
+"""
+Represents a wallet/account address
+"""
+type Account @entity {
+  "Account address"
+  id: ID!
+  "All token balances for this account"
+  balances: [AccountBalance!]! @derivedFrom(field: "account")
+  "Transfers sent by this account"
+  transfersFrom: [Transfer!]! @derivedFrom(field: "from")
+  "Transfers received by this account"
+  transfersTo: [Transfer!]! @derivedFrom(field: "to")
+}
+
+"""
+Represents an account's balance of a specific token
+"""
+type AccountBalance @entity {
+  "Unique ID: {accountAddress}-{tokenAddress}"
+  id: ID!
+  "The account holding the balance"
+  account: Account!
+  "The token being held"
+  token: Token!
+  "Current balance in raw units"
+  balance: BigInt!
+  "Block number of last update"
+  blockNumber: BigInt!
+  "Timestamp of last update"
+  timestamp: BigInt!
+}
+
+"""
+Historical balance snapshot for time-series analysis
+"""
+type BalanceSnapshot @entity {
+  "Unique ID: {accountAddress}-{tokenAddress}-{blockNumber}"
+  id: ID!
+  "The account"
+  account: Account!
+  "The token"
+  token: Token!
+  "Balance at this block"
+  balance: BigInt!
+  "Block number"
+  blockNumber: BigInt!
+  "Block timestamp"
+  timestamp: BigInt!
+}
+
+"""
+Represents a single ERC-20 transfer event
+"""
+type Transfer @entity {
+  "Unique ID: {transactionHash}-{logIndex}"
+  id: ID!
+  "The token being transferred"
+  token: Token!
+  "Sender address"
+  from: Account!
+  "Receiver address"
+  to: Account!
+  "Amount transferred in raw units"
+  amount: BigInt!
+  "Block number"
+  blockNumber: BigInt!
+  "Block timestamp"
+  timestamp: BigInt!
+  "Transaction hash"
+  transactionHash: Bytes!
+  "Log index within transaction"
+  logIndex: BigInt!
+}
+
+"""
+Liquidity pool for price calculations
+"""
+type LiquidityPool @entity {
+  "Pool contract address"
+  id: ID!
+  "Token 0 in the pair"
+  token0: Token!
+  "Token 1 in the pair"
+  token1: Token!
+  "Reserve of token0"
+  reserve0: BigInt!
+  "Reserve of token1"
+  reserve1: BigInt!
+  "Block of last update"
+  blockNumber: BigInt!
+  "Timestamp of last update"
+  timestamp: BigInt!
+}
+
+"""
+Price snapshot for token valuation over time
+"""
+type PriceSnapshot @entity {
+  "Unique ID: {tokenAddress}-{blockNumber}"
+  id: ID!
+  "The token"
+  token: Token!
+  "Price in terms of paired token (e.g., WETH)"
+  priceInPairToken: BigDecimal!
+  "The pair token used for pricing"
+  pairToken: Token!
+  "Block number"
+  blockNumber: BigInt!
+  "Timestamp"
+  timestamp: BigInt!
+}

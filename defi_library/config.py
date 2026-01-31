@@ -1,10 +1,22 @@
 PROJECT_ROOT_FOLDER = "DEFI_PROJECT_MAIN"
 
+# ========== RPC Endpoints ==========
 ETH_RPC_URL = "ETH_RPC"
+BSC_RPC_URL = "BSC_RPC"
+SOLANA_RPC_URL = "SOLANA_RPC"
 
+# ========== API Keys ==========
 ETHERSCAN_API_TOKEN = "ETHERSCAN_API_TOKEN"
-
+BSCSCAN_API_TOKEN = "BSCSCAN_API_TOKEN"
 CMC_API_KEY = "CMC_API_KEY"
+
+# The Graph API key (for decentralized network queries)
+# Get from: https://thegraph.com/studio/
+THEGRAPH_API_KEY = "THEGRAPH_API_KEY"
+
+# Helius API key (for Solana)
+# Get from: https://dev.helius.xyz/
+HELIUS_API_KEY = "HELIUS_API_KEY"
 
 # WRAPPED TOKENS
 

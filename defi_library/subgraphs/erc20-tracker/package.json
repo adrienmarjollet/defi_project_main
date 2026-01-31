@@ -1,0 +1,23 @@
+{
+  "name": "erc20-tracker",
+  "version": "1.0.0",
+  "description": "ERC-20 Token Tracker Subgraph for ETH and BSC",
+  "repository": "",
+  "license": "MIT",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy:studio": "graph deploy --studio erc20-tracker",
+    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 erc20-tracker",
+    "create:local": "graph create --node http://localhost:8020/ erc20-tracker",
+    "remove:local": "graph remove --node http://localhost:8020/ erc20-tracker",
+    "test": "graph test"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.71.0",
+    "@graphprotocol/graph-ts": "^0.32.0"
+  },
+  "devDependencies": {
+    "matchstick-as": "^0.6.0"
+  }
+}
