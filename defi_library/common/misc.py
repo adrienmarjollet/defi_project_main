@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import List
 from dotenv import load_dotenv
 
 from config import PROJECT_ROOT_FOLDER
@@ -9,9 +10,9 @@ from config import PROJECT_ROOT_FOLDER
 #####################
 
 
-def find_project_root_path(stop_folder=PROJECT_ROOT_FOLDER, initial_path='.',  marker_file='pyproject.toml'):
+def find_project_root_path(stop_folder: str = PROJECT_ROOT_FOLDER, initial_path: str = '.',  marker_file: str = 'pyproject.toml') -> Path:
     """
-    Find the project root path by looking for a marker file in the directory tree, 
+    Find the project root path by looking for a marker file in the directory tree,
     starting from the initial path and searching all directories and subdirectories.
     Also search backwards towards the root directory.
     Return the path of the project root directory as a Path object.
@@ -28,8 +29,8 @@ def find_project_root_path(stop_folder=PROJECT_ROOT_FOLDER, initial_path='.',  m
     raise FileNotFoundError(f'{marker_file} not found in the directory tree starting from {initial_path}')
 
 
-def load_env_variables(root_path, list_env_vars):
-    """ 
+def load_env_variables(root_path: Path, list_env_vars: List[str]) -> List[str]:
+    """
     Load the environment variables from the .env file
     Return them as a list
     """

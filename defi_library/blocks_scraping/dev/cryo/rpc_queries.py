@@ -1,4 +1,5 @@
 import cryo
+from decimal import Decimal
 
 # typing modules
 from typing import List
@@ -93,7 +94,9 @@ class CryoTools:
             abi = self._etherscan_queries.get_contract_abi(contract[0])
             # parse the balance_string column according to the contract
             decimal = self._web3_queries.get_token_decimals(contract[0], abi)
-            data["balance"] = data["balance_string"].astype("float64") / (10**decimal)
+            data["balance"] = data["balance_string"].apply(
+                lambda x: float(Decimal(str(x)) / (Decimal(10) ** decimal))
+            )
         # drop the balance_string column
         data = data.drop("balance_string", axis=1)
         return data

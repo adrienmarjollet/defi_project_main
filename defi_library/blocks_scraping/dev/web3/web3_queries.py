@@ -5,6 +5,7 @@ from web3 import Web3
 
 from collections import defaultdict
 from decimal import Decimal
+from typing import Optional, Any, Dict, List
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -114,7 +115,7 @@ class Web3Queries:
     # WEB3 TOOLS
     ################
 
-    def convert_balance_to_ether(self, balance_str: str):
+    def convert_balance_to_ether(self, balance_str: str) -> Optional[Decimal]:
         """
         Convert balance from Wei to Ether, handling None values.
         """
@@ -128,21 +129,21 @@ class Web3Queries:
     ## BALANCE QUERIES
     ################
 
-    def get_balance(self, address):
+    def get_balance(self, address: str) -> int:
         return self.web3.eth.get_balance(address)
 
     ################
     ## GENERAL CONTRACT QUERIES
     ################
 
-    def get_contract(self, contract_address, abi):
+    def get_contract(self, contract_address: str, abi: list) -> Any:
         return self.web3.eth.contract(address=contract_address, abi=abi)
 
-    def call_contract_function(self, contract, function_name, *args):
+    def call_contract_function(self, contract: Any, function_name: str, *args) -> Any:
         contract_function = contract.functions[function_name]
         return contract_function(*args).call()
 
-    def get_token_decimals(self, contract_address, abi):
+    def get_token_decimals(self, contract_address: str, abi: Optional[list] = None) -> int:
         """
         Get token decimals from cache or blockchain,
         and cache the result
@@ -174,11 +175,7 @@ class Web3Queries:
 
         return decimals
 
-    # def get_token_name(self, contract_address, abi = None):
-    #     contract = self.get_contract(contract_address, abi or ABI_STANDARD_ERC20)
-    #     return self.call_contract_function(contract, "name")
-
-    def get_token_name(self, contract_address, abi=None):
+    def get_token_name(self, contract_address: str, abi: Optional[list] = None) -> str:
         """
         Get token name from cache or blockchain,
         and cache the result
@@ -208,38 +205,24 @@ class Web3Queries:
 
         return name
 
-    # def send_contract_transaction(self, contract, function_name, transaction, *args):
-    #     contract_function = contract.functions[function_name]
-    #     return contract_function(*args).transact(transaction)
-
     ################
     ## BLOCK QUERIES
     ################
 
-    def get_latest_block(self):
+    def get_latest_block(self) -> dict:
         return self.web3.eth.get_block("latest")
 
-    def get_block_by_number(self, block_number):
+    def get_block_by_number(self, block_number: int) -> dict:
         return self.web3.eth.get_block(block_number)
 
-    def get_transaction_by_hash(self, tx_hash):
+    def get_transaction_by_hash(self, tx_hash: str) -> dict:
         return self.web3.eth.get_transaction(tx_hash)
-
-    # def get_token_name(self, contract_address):
-    #     contract = self.get_contract(contract_address, ABI_STANDARD_ERC20)
-    #     return self.call_contract_function(contract, "name")
-
-    # def get_gas_price(self):
-    #     return self.web3.eth.gas_price
-
-    # def estimate_gas(self, transaction):
-    #     return self.web3.eth.estimate_gas(transaction)
 
     #############
     ## EXPLO TO GET HOLDERS
     #############
 
-    def get_rpc_response(self, method, params=[]):
+    def get_rpc_response(self, method: str, params: Optional[list] = None) -> dict:
         url = self._rpc_url
         params = params or []
         data = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
@@ -247,7 +230,7 @@ class Web3Queries:
         response = requests.post(url, headers=headers, json=data)
         return response.json()
 
-    def get_contract_transfers(self, address, decimals=18, from_block=None):
+    def get_contract_transfers(self, address: str, decimals: int = 18, from_block: Optional[str] = None) -> list:
         """Get logs of Transfer events of a contract"""
         from_block = from_block or "0x0"
         transfer_hash = (
@@ -257,9 +240,6 @@ class Web3Queries:
             {"address": address, "fromBlock": from_block, "topics": [transfer_hash]}
         ]
         logs = self.get_rpc_response("eth_getLogs", params)["result"]
-        from pprint import pprint as pp
-
-        pp(logs[100])
         decimals_factor = Decimal("10") ** Decimal("-{}".format(decimals))
         for log in logs:
             log["amount"] = Decimal(str(int(log["data"], 16))) * decimals_factor
@@ -268,7 +248,7 @@ class Web3Queries:
         return logs
 
     @staticmethod
-    def get_balances(transfers):
+    def get_balances(transfers: list) -> dict:
         balances = defaultdict(Decimal)
         for t in transfers:
             balances[t["from"]] -= t["amount"]
@@ -277,7 +257,7 @@ class Web3Queries:
         balances = {k: balances[k] for k in balances if balances[k] > bottom_limit}
         return balances
 
-    def get_balances_list(self, transfers):
+    def get_balances_list(self, transfers: list) -> list:
         balances = self.get_balances(transfers)
         balances = [{"address": a, "amount": b} for a, b in balances.items()]
         balances = sorted(balances, key=lambda b: -abs(b["amount"]))

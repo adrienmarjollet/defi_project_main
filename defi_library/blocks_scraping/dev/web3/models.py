@@ -8,8 +8,8 @@ class ContractCache(Base):
     __tablename__ = "contract_cache"
 
     contract_address = Column(
-        String(66), primary_key=True
-    )  # Ethereum addresses are 42 chars
+        String(42), primary_key=True
+    )  # Ethereum addresses are 42 chars (including 0x prefix)
     abi = Column(String)
     decimals = Column(Integer)
     name = Column(String(50))  # Add reasonable length limit

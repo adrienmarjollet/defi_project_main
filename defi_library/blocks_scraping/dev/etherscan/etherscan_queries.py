@@ -1,5 +1,9 @@
 import sys
+import time
+import logging
 import requests
+from decimal import Decimal
+from functools import wraps
 
 # dev imports
 from config import ETHERSCAN_API_TOKEN, ETH_RPC_URL, WETH_ADDRESS
@@ -8,11 +12,42 @@ from common.misc import find_project_root_path, load_env_variables
 
 from blocks_scraping.dev.web3.web3_queries import Web3Queries
 
+logger = logging.getLogger(__name__)
+
+def retry_on_failure(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
+    """
+    Decorator to retry a function on failure with exponential backoff.
+
+    Args:
+        max_retries: Maximum number of retry attempts
+        delay: Initial delay between retries in seconds
+        backoff: Multiplier for delay after each retry
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    if attempt < max_retries:
+                        wait_time = delay * (backoff ** attempt)
+                        logger.warning(
+                            f"{func.__name__} failed (attempt {attempt + 1}/{max_retries + 1}): {e}. "
+                            f"Retrying in {wait_time:.1f}s..."
+                        )
+                        time.sleep(wait_time)
+                    else:
+                        logger.error(f"{func.__name__} failed after {max_retries + 1} attempts: {e}")
+            raise last_exception
+        return wrapper
+    return decorator
+
 
 class EtherScanQueries:
     def __init__(self):
-        print(ETHERSCAN_API_TOKEN)
-
         self.root_path = find_project_root_path()
         self._ethscan_token = load_env_variables(self.root_path, [ETHERSCAN_API_TOKEN])[
             0
@@ -25,6 +60,7 @@ class EtherScanQueries:
 
     # related to your API key tier
 
+    @retry_on_failure()
     def get_etherscan_credit(self):
         url = f"https://api.etherscan.io/api?module=stats&action=ethsupply&apikey={self._ethscan_token}"
         response = requests.get(url)
@@ -38,6 +74,7 @@ class EtherScanQueries:
 
     ## CONTRACTS QUERIES
 
+    @retry_on_failure()
     def get_contract_abi(self, address) -> str:
         url = f"https://api.etherscan.io/api?chainid=1&module=contract&action=getabi&address={address}&apikey={self._ethscan_token}"
         response = requests.get(url)
@@ -49,6 +86,7 @@ class EtherScanQueries:
                 f"Error fetching ABI: {data['message']} for address: {address} via etherscan for get_contract_abi method"
             )
 
+    @retry_on_failure()
     def get_contract_creator_hash(self, address):
         # TODO: this can be very useful, especially the creation tx hash
         url = (
@@ -66,6 +104,7 @@ class EtherScanQueries:
 
     # BLOCKS ENDPOINTS
 
+    @retry_on_failure()
     def get_block_number_from_timestamp(self, timestamp: int):
         """Get the block number for a given timestamp (Unix in seconds)"""
         url = (
@@ -91,6 +130,7 @@ class EtherScanQueries:
         contract = self._web3_queries.get_contract(contract_address, abi)
         return self._web3_queries.call_contract_function(contract, "decimals")
 
+    @retry_on_failure()
     def get_eth_price(self):
         url = f"https://api.etherscan.io/api?chainid=1&module=stats&action=ethprice&apikey={self._ethscan_token}"
         response = requests.get(url)
@@ -102,6 +142,7 @@ class EtherScanQueries:
                 f"Error fetching ETH price: {data['message']} via etherscan for get_eth_price method"
             )
 
+    @retry_on_failure()
     def get_eth_balance(self, address, fiat=False):
         """
         Get the ETH balance for a given address.
@@ -111,11 +152,12 @@ class EtherScanQueries:
         data = response.json()
         if data["status"] == "1":
             if fiat:
-                eth_price = self.get_eth_price()
-                return float(data["result"]) * eth_price
+                eth_price = Decimal(str(self.get_eth_price()))
+                return Decimal(str(data["result"])) * eth_price
             else:
-                return float(data["result"])
+                return Decimal(str(data["result"]))
 
+    @retry_on_failure()
     def get_eth_balances(self, addresses, fiat=False):
         # TODO: ADAPT THIS FUNCTION FOR A LIST OF ADDRESSES INSTEAD
         """
@@ -130,11 +172,11 @@ class EtherScanQueries:
         data = response.json()
         if data["status"] == "1":
             balances = {
-                address: float(balance["balance"])
+                address: Decimal(str(balance["balance"]))
                 for address, balance in zip(addresses, data["result"])
             }
             if fiat:
-                eth_price = self.get_eth_price()
+                eth_price = Decimal(str(self.get_eth_price()))
                 return {
                     address: balance * eth_price
                     for address, balance in balances.items()
@@ -146,6 +188,7 @@ class EtherScanQueries:
                 f"Error fetching balances: {data['message']} for addresses: {addresses} via etherscan for get_eth_balances method"
             )
 
+    @retry_on_failure()
     def get_erc20_balance_from_address(self, address, contract):
         url = (
             f"https://api.etherscan.io/api?chainid=1&module=account&action=tokenbalance"
@@ -155,11 +198,11 @@ class EtherScanQueries:
         data = response.json()
         if data["status"] == "1":
             if address == WETH_ADDRESS:
-                return float(data["result"])
+                return Decimal(str(data["result"]))
             else:
                 token_decimal = self.get_token_decimals(address)
-                return float(data["result"]) / (
-                    10**token_decimal
+                return Decimal(str(data["result"])) / (
+                    Decimal(10) ** token_decimal
                 )  # check what is faster between web3 lib conversation and this one
         else:
             raise Exception(
@@ -173,20 +216,21 @@ class EtherScanQueries:
         token_amount = self.get_erc20_balance_from_address(pool_address, contract)
         print("token_amount:", token_amount)
         # get price per eth
-        value_eth_per_token = float(weth_amount) / float(token_amount)
+        value_eth_per_token = Decimal(str(weth_amount)) / Decimal(str(token_amount))
         if fiat:
-            eth_price = self.get_eth_price()
-            return value_eth_per_token * float(eth_price)
+            eth_price = Decimal(str(self.get_eth_price()))
+            return value_eth_per_token * eth_price
         return value_eth_per_token
 
+    @retry_on_failure()
     def get_token_total_supply(self, contract_address):
         """Get the total supply of a token"""
         url = f"https://api.etherscan.io/api?chainid=1&module=stats&action=tokensupply&contractaddress={contract_address}&apikey={self._ethscan_token}"
         response = requests.get(url)
         data = response.json()
         if data["status"] == "1":
-            return float(data["result"]) / (
-                10 ** self.get_token_decimals(contract_address)
+            return Decimal(str(data["result"])) / (
+                Decimal(10) ** self.get_token_decimals(contract_address)
             )
         else:
             raise Exception(

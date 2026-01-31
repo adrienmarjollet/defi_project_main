@@ -1,28 +1,13 @@
 import os
-import time
-from dotenv import load_dotenv
 import cryo
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from web3 import Web3
 import streamlit as st
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Holders statistics", page_icon="📈")
 
-# Constants
-LOOKBACK_BLOCKS = 100 # Approx a day in the past
-CONTRACT_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' # WETH
-WALLET_ADDRESS = '0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852'   # WETH-USDT pool Uniswap V2
-
-CONTRACT_ADDRESS = '0x6982508145454ce325ddbe47a25d4ec3d2311933' # PEPE
-WALLET_ADDRESS = '0x1c06c36a559bbe99adece16eb7a63c5e997b2ef3'   # pepe whale
-WALLET_ADDRESS = '0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852'   # WETH-USDT pool Uniswap V2
-#TODO: fix it to display balance of any token
-
-#TODO add manual selection from a choice of tokens in a dic in a SQL data base 
+# Environment variable for RPC endpoint
+ETH_RPC_VAR = "ETH_RPC" 
 
 
 class EthRPC():
@@ -45,28 +30,28 @@ class EthRPC():
         start_block = max(0, latest_block - lookback_blocks)
         return f"{start_block}:{latest_block}"
 
-    def fetch_erc20_balances(self,block_range):
+    def fetch_erc20_balances(self, block_range, contract_address, wallet_address):
         """Fetch ERC-20 token balances within a given block range."""
         return cryo.collect(
             "erc20_balances",
             blocks=[block_range],
-            contract=[CONTRACT_ADDRESS],
-            address=[WALLET_ADDRESS],
+            contract=[contract_address],
+            address=[wallet_address],
             rpc=self.eth_rpc,
             output_format="pandas",
             hex=True,
-            requests_per_second=100)# Adapt the RPS to your endpoint)
+            requests_per_second=100)  # Adapt the RPS to your endpoint
 
     @staticmethod
     def convert_balance_to_ether(balance_str):
         """Convert balance from Wei to Ether, handling None values."""
         return None if balance_str is None else Web3.from_wei(int(balance_str), 'ether')
 
-    def plot_balance_change_over_time(self,data):
+    def plot_balance_change_over_time(self, data, contract_address, wallet_address):
         """Plot the balance change over time on a chart."""
         # Set the title of the Streamlit app
-        st.title(f"ERC-20 Token Balance Change for {CONTRACT_ADDRESS}")
-        st.subheader(f"Wallet {WALLET_ADDRESS}")
+        st.title(f"ERC-20 Token Balance Change for {contract_address}")
+        st.subheader(f"Wallet {wallet_address}")
 
         # Create a figure
         fig = go.Figure()
@@ -104,16 +89,36 @@ class EthRPC():
 
 if __name__ == "__main__":
 
-    ETH_RPC_VAR = "ETH_RPC"
+    # Sidebar configuration
+    st.sidebar.header("Configuration")
+    CONTRACT_ADDRESS = st.sidebar.text_input(
+        "Token Contract Address",
+        value="0x6982508145454ce325ddbe47a25d4ec3d2311933",
+        help="ERC-20 token contract address (default: PEPE)"
+    )
+    WALLET_ADDRESS = st.sidebar.text_input(
+        "Wallet/Pool Address",
+        value="0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852",
+        help="Address to track - wallet or liquidity pool (default: WETH-USDT Uniswap V2 pool)"
+    )
+    LOOKBACK_BLOCKS = st.sidebar.slider(
+        "Lookback Blocks",
+        min_value=10,
+        max_value=1000,
+        value=100,
+        help="Number of blocks to look back (approx 100 blocks = 1 day)"
+    )
+
+    # Initialize RPC connection
     eth_rpc = os.getenv(ETH_RPC_VAR)
     w3 = Web3(Web3.HTTPProvider(eth_rpc))
 
-    # initialize a new instance of the class
-    rpc = EthRPC()     
+    # Initialize a new instance of the class
+    rpc = EthRPC()
 
     block_range = rpc.get_block_range(LOOKBACK_BLOCKS)
     # Fetch the data
-    data = rpc.fetch_erc20_balances(block_range)
+    data = rpc.fetch_erc20_balances(block_range, CONTRACT_ADDRESS, WALLET_ADDRESS)
 
     if data.empty:
         st.write("No data available for plotting.")
@@ -125,6 +130,6 @@ if __name__ == "__main__":
     data = data[data['balance_ether'].notnull()]  # Filter out rows with None values
 
     # Plot the balance changes over time
-    rpc.plot_balance_change_over_time(data)
+    rpc.plot_balance_change_over_time(data, CONTRACT_ADDRESS, WALLET_ADDRESS)
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
