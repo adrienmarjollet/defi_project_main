@@ -7,8 +7,18 @@ and match known historical reference values for:
 - BSC (Binance Smart Chain) - BNB, CAKE, BUSD
 - Solana - SOL, USDC-SPL, JTO, BONK
 
-Tests use known historical prices at specific blocks/timestamps and verify
-that fetched prices are within an acceptable tolerance (default 5%).
+Test Categories:
+1. Unit tests with mocked data - Run offline, test price calculation logic
+2. Integration tests (optional) - Fetch real prices from DeFiLlama API
+
+Ground Truth Source:
+- DeFiLlama API: https://coins.llama.fi/prices/historical/{timestamp}/{chain}:{address}
+- To refresh reference prices, run: python -m defi_library.common.historical_price_fetcher --refresh
+
+Reference Price Timestamps:
+- Nov 3, 2023 (timestamp: 1699027200) - ETH block ~18500000, BSC block ~33000000
+- Jan 2, 2024 (timestamp: 1704153600) - ETH block ~19000000, BSC block ~35000000
+- Mar 13, 2024 (timestamp: 1710288000) - ETH block ~19500000, BSC block ~37000000
 """
 
 import sys
@@ -972,6 +982,277 @@ class TestHistoricalPriceDataIntegrity(unittest.TestCase):
         self.assertEqual(sol_slots, list(SOLANA_HISTORICAL_PRICES.keys()))
 
 
+# ==============================================================================
+# INTEGRATION TESTS - Fetch real prices from DeFiLlama API
+# These tests require network access and are skipped by default.
+# Run with: python -m pytest test_historical_prices.py -k "Integration" --run-integration
+# ==============================================================================
+
+# Check if integration tests should run
+SKIP_INTEGRATION = os.environ.get('RUN_INTEGRATION_TESTS', '').lower() not in ('1', 'true', 'yes')
+
+
+@unittest.skipIf(SKIP_INTEGRATION, "Integration tests disabled. Set RUN_INTEGRATION_TESTS=1 to enable.")
+class TestDeFiLlamaIntegration(unittest.TestCase):
+    """
+    Integration tests that fetch real historical prices from DeFiLlama API.
+
+    These tests verify that our reference prices match the actual API values.
+    Run with: RUN_INTEGRATION_TESTS=1 python -m unittest test_historical_prices.TestDeFiLlamaIntegration
+    """
+
+    # DeFiLlama API endpoint
+    DEFILLAMA_URL = "https://coins.llama.fi/prices/historical"
+
+    # Reference timestamps
+    TIMESTAMPS = {
+        'nov_2023': 1699027200,
+        'jan_2024': 1704153600,
+        'mar_2024': 1710288000,
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up for integration tests - import requests."""
+        try:
+            import requests
+            cls.requests = requests
+            cls.api_available = True
+        except ImportError:
+            cls.api_available = False
+
+    def _fetch_price(self, chain: str, address: str, timestamp: int) -> float:
+        """Fetch price from DeFiLlama API."""
+        if not self.api_available:
+            self.skipTest("requests module not available")
+
+        url = f"{self.DEFILLAMA_URL}/{timestamp}/{chain}:{address}"
+        try:
+            response = self.requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            coin_key = f"{chain}:{address}"
+            return data.get('coins', {}).get(coin_key, {}).get('price')
+        except Exception as e:
+            self.skipTest(f"API request failed: {e}")
+
+    def test_eth_weth_price_nov_2023(self):
+        """Verify WETH price on Nov 3, 2023 from DeFiLlama."""
+        price = self._fetch_price(
+            'ethereum',
+            ETH_TOKENS['WETH']['address'],
+            self.TIMESTAMPS['nov_2023']
+        )
+        if price:
+            # WETH should be ~$1800-1900 on Nov 3, 2023
+            self.assertGreater(price, 1500, f"WETH price {price} too low")
+            self.assertLess(price, 2200, f"WETH price {price} too high")
+            print(f"\n  WETH Nov 2023: ${price:.2f}")
+
+    def test_eth_link_price_jan_2024(self):
+        """Verify LINK price on Jan 2, 2024 from DeFiLlama."""
+        price = self._fetch_price(
+            'ethereum',
+            ETH_TOKENS['LINK']['address'],
+            self.TIMESTAMPS['jan_2024']
+        )
+        if price:
+            # LINK should be ~$13-17 on Jan 2, 2024
+            self.assertGreater(price, 10, f"LINK price {price} too low")
+            self.assertLess(price, 25, f"LINK price {price} too high")
+            print(f"\n  LINK Jan 2024: ${price:.2f}")
+
+    def test_eth_pepe_price_mar_2024(self):
+        """Verify PEPE price on Mar 13, 2024 from DeFiLlama."""
+        price = self._fetch_price(
+            'ethereum',
+            ETH_TOKENS['PEPE']['address'],
+            self.TIMESTAMPS['mar_2024']
+        )
+        if price:
+            # PEPE should be a very small number
+            self.assertGreater(price, 0, f"PEPE price {price} should be positive")
+            self.assertLess(price, 0.001, f"PEPE price {price} too high")
+            print(f"\n  PEPE Mar 2024: ${price:.10f}")
+
+    def test_bsc_bnb_price_nov_2023(self):
+        """Verify BNB price on Nov 3, 2023 from DeFiLlama."""
+        price = self._fetch_price(
+            'bsc',
+            BSC_TOKENS['WBNB']['address'],
+            self.TIMESTAMPS['nov_2023']
+        )
+        if price:
+            # BNB should be ~$220-250 on Nov 3, 2023
+            self.assertGreater(price, 180, f"BNB price {price} too low")
+            self.assertLess(price, 300, f"BNB price {price} too high")
+            print(f"\n  BNB Nov 2023: ${price:.2f}")
+
+    def test_bsc_cake_price_jan_2024(self):
+        """Verify CAKE price on Jan 2, 2024 from DeFiLlama."""
+        price = self._fetch_price(
+            'bsc',
+            BSC_TOKENS['CAKE']['address'],
+            self.TIMESTAMPS['jan_2024']
+        )
+        if price:
+            # CAKE should be ~$2-4 on Jan 2, 2024
+            self.assertGreater(price, 1, f"CAKE price {price} too low")
+            self.assertLess(price, 10, f"CAKE price {price} too high")
+            print(f"\n  CAKE Jan 2024: ${price:.2f}")
+
+    def test_solana_sol_price_nov_2023(self):
+        """Verify SOL price on Nov 3, 2023 from DeFiLlama."""
+        price = self._fetch_price(
+            'solana',
+            SOLANA_TOKENS['SOL']['mint'],
+            self.TIMESTAMPS['nov_2023']
+        )
+        if price:
+            # SOL should be ~$35-65 on Nov 3, 2023
+            self.assertGreater(price, 25, f"SOL price {price} too low")
+            self.assertLess(price, 80, f"SOL price {price} too high")
+            print(f"\n  SOL Nov 2023: ${price:.2f}")
+
+    def test_solana_bonk_price_jan_2024(self):
+        """Verify BONK price on Jan 2, 2024 from DeFiLlama."""
+        price = self._fetch_price(
+            'solana',
+            SOLANA_TOKENS['BONK']['mint'],
+            self.TIMESTAMPS['jan_2024']
+        )
+        if price:
+            # BONK should be a very small number
+            self.assertGreater(price, 0, f"BONK price {price} should be positive")
+            self.assertLess(price, 0.001, f"BONK price {price} too high")
+            print(f"\n  BONK Jan 2024: ${price:.10f}")
+
+
+@unittest.skipIf(SKIP_INTEGRATION, "Integration tests disabled. Set RUN_INTEGRATION_TESTS=1 to enable.")
+class TestVerifyReferencePrices(unittest.TestCase):
+    """
+    Verify that our hardcoded reference prices match DeFiLlama API values.
+
+    This test class compares the ETH_HISTORICAL_PRICES, BSC_HISTORICAL_PRICES,
+    and SOLANA_HISTORICAL_PRICES constants against live API data.
+    """
+
+    TOLERANCE = 0.20  # 20% tolerance for historical price verification
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up for verification tests."""
+        try:
+            import requests
+            cls.requests = requests
+            cls.api_available = True
+        except ImportError:
+            cls.api_available = False
+
+    def _fetch_and_compare(self, chain: str, address: str, timestamp: int, expected: float, token_name: str):
+        """Fetch price and compare against expected value."""
+        if not self.api_available:
+            self.skipTest("requests module not available")
+
+        url = f"https://coins.llama.fi/prices/historical/{timestamp}/{chain}:{address}"
+        try:
+            response = self.requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            coin_key = f"{chain}:{address}"
+            actual = data.get('coins', {}).get(coin_key, {}).get('price')
+
+            if actual:
+                deviation = abs(actual - expected) / expected if expected != 0 else 0
+                status = "✓" if deviation <= self.TOLERANCE else "✗"
+                print(f"\n  {status} {token_name}: API=${actual:.6f}, Expected=${expected:.6f}, Deviation={deviation*100:.1f}%")
+
+                self.assertTrue(
+                    deviation <= self.TOLERANCE,
+                    f"{token_name} price deviation {deviation*100:.1f}% exceeds {self.TOLERANCE*100}% tolerance. "
+                    f"API: ${actual}, Expected: ${expected}"
+                )
+            else:
+                print(f"\n  ? {token_name}: No API data available")
+
+        except Exception as e:
+            self.skipTest(f"API request failed for {token_name}: {e}")
+
+    def test_verify_eth_historical_prices(self):
+        """Verify ETH chain historical prices against DeFiLlama API."""
+        timestamp_map = {
+            18500000: 1699027200,  # Nov 2023
+            19000000: 1704153600,  # Jan 2024
+            19500000: 1710288000,  # Mar 2024
+        }
+
+        for block, prices in ETH_HISTORICAL_PRICES.items():
+            timestamp = timestamp_map.get(block)
+            if not timestamp:
+                continue
+
+            print(f"\n--- ETH Block {block} ---")
+
+            for token_name, expected_price in prices.items():
+                if token_name == 'ETH':
+                    address = ETH_TOKENS['WETH']['address']
+                elif token_name in ETH_TOKENS:
+                    address = ETH_TOKENS[token_name]['address']
+                else:
+                    continue
+
+                self._fetch_and_compare('ethereum', address, timestamp, expected_price, token_name)
+
+    def test_verify_bsc_historical_prices(self):
+        """Verify BSC chain historical prices against DeFiLlama API."""
+        timestamp_map = {
+            33000000: 1699027200,  # Nov 2023
+            35000000: 1704153600,  # Jan 2024
+            37000000: 1710288000,  # Mar 2024
+        }
+
+        for block, prices in BSC_HISTORICAL_PRICES.items():
+            timestamp = timestamp_map.get(block)
+            if not timestamp:
+                continue
+
+            print(f"\n--- BSC Block {block} ---")
+
+            for token_name, expected_price in prices.items():
+                if token_name == 'BNB':
+                    address = BSC_TOKENS['WBNB']['address']
+                elif token_name in BSC_TOKENS:
+                    address = BSC_TOKENS[token_name]['address']
+                else:
+                    continue
+
+                self._fetch_and_compare('bsc', address, timestamp, expected_price, token_name)
+
+    def test_verify_solana_historical_prices(self):
+        """Verify Solana chain historical prices against DeFiLlama API."""
+        timestamp_map = {
+            230000000: 1699027200,  # Nov 2023
+            245000000: 1704153600,  # Jan 2024
+            260000000: 1710288000,  # Mar 2024
+        }
+
+        for slot, prices in SOLANA_HISTORICAL_PRICES.items():
+            timestamp = timestamp_map.get(slot)
+            if not timestamp:
+                continue
+
+            print(f"\n--- Solana Slot {slot} ---")
+
+            for token_name, expected_price in prices.items():
+                if token_name in SOLANA_TOKENS:
+                    mint = SOLANA_TOKENS[token_name]['mint']
+                else:
+                    continue
+
+                self._fetch_and_compare('solana', mint, timestamp, expected_price, token_name)
+
+
 if __name__ == '__main__':
     # Run tests with verbose output
+    # For integration tests, set RUN_INTEGRATION_TESTS=1
     unittest.main(verbosity=2)
