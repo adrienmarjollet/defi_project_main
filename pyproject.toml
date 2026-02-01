@@ -1,68 +1,60 @@
-[tool.poetry]
+[project]
 name = "defi-multichain"
 version = "0.2.0"
 description = "Multi-chain DeFi analytics with The Graph + Helius (ETH, BSC, Solana) - modernized"
-authors = ["Adrien Marjollet <adrien.marjollet1@gmail.com>"]
+authors = [
+    {name = "Adrien Marjollet", email = "adrien.marjollet1@gmail.com"}
+]
 readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    # Core data processing
+    "pandas>=2.2.3",
+    "polars>=1.21.0",
+    "pyarrow>=19.0.0",
+    # EVM blockchain interaction
+    "web3>=7.8.0",
+    # Solana blockchain interaction
+    "solana>=0.34.0",
+    "solders>=0.21.0",
+    # HTTP & GraphQL clients
+    "httpx>=0.27",
+    "gql[requests]>=3.5.0",
+    # Configuration & Environment
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    # Resilience & Retry
+    "tenacity>=8.2",
+    # Logging
+    "structlog>=24.1",
+    # Database
+    "sqlalchemy>=2.0.38",
+    "psycopg2-binary>=2.9.10",
+    # Visualization
+    "plotly>=6.0.0",
+    "matplotlib>=3.10.0",
+    # Testing utilities
+    "pyfixture>=0.7",
+    "pre-commit>=4.1.0",
+    # Build tools (keep for compatibility)
+    "maturin>=1.8.1",
+    "cryo>=0.3.2",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0.0"
-
-# Core data processing
-pandas = "^2.2.3"
-polars = "^1.21.0"
-pyarrow = "^19.0.0"
-
-# EVM blockchain interaction
-web3 = "^7.8.0"
-
-# Solana blockchain interaction
-solana = "^0.34.0"
-solders = "^0.21.0"
-
-# HTTP & GraphQL clients
-httpx = "^0.27"
-gql = {extras = ["requests"], version = "^3.5.0"}
-
-# Configuration & Environment
-python-dotenv = "^1.0.1"
-pydantic = "^2.6"
-pydantic-settings = "^2.2"
-
-# Resilience & Retry
-tenacity = "^8.2"
-
-# Logging
-structlog = "^24.1"
-
-# Database
-sqlalchemy = "^2.0.38"
-psycopg2-binary = "^2.9.10"
-
-# Visualization
-plotly = "^6.0.0"
-matplotlib = "^3.10.0"
-
-# Testing utilities
-pyfixture = "^0.7"
-pre-commit = "^4.1.0"
-
-# Build tools (keep for compatibility)
-maturin = "^1.8.1"
-cryo = "^0.3.2"
-
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
-ruff = "^0.9.5"
-pytest = "^8.0"
-pytest-asyncio = "^0.23"
-pytest-cov = "^4.1"
-respx = "^0.20"
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "ruff>=0.9.5",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "respx>=0.20",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
