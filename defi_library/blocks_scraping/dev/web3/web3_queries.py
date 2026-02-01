@@ -61,8 +61,8 @@ class Web3Queries:
         self.db_web3_path = os.path.join(data_dir, "web3_database.db")
         # DB connection
         self.engine = create_engine(
-            f"sqlite:///{self.db_web3_path}", echo=True
-        )  # Create a database engine, echo=True will print SQL queries
+            f"sqlite:///{self.db_web3_path}", echo=False
+        )  # Create a database engine
         Base.metadata.create_all(
             self.engine
         )  # Creates tables only if they don't exist. If the tables already exist, it does nothing
