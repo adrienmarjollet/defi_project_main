@@ -1,0 +1,84 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+description: ERC-20 Token Tracker - Tracks balances, transfers, and prices
+repository: https://github.com/your-repo/erc20-tracker
+
+# Data sources - Add your token contracts here
+dataSources:
+  # Example: WETH on Ethereum Mainnet
+  - kind: ethereum/contract
+    name: WETH
+    network: mainnet  # Change to 'bsc' for BSC
+    source:
+      address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+      abi: ERC20
+      startBlock: 4719568  # WETH deployment block
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - Account
+        - AccountBalance
+        - BalanceSnapshot
+        - Transfer
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/mapping.ts
+
+  # Example: Add more tokens as needed
+  # - kind: ethereum/contract
+  #   name: USDC
+  #   network: mainnet
+  #   source:
+  #     address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  #     abi: ERC20
+  #     startBlock: 6082465
+  #   mapping:
+  #     kind: ethereum/events
+  #     apiVersion: 0.0.7
+  #     language: wasm/assemblyscript
+  #     entities:
+  #       - Token
+  #       - Account
+  #       - AccountBalance
+  #       - BalanceSnapshot
+  #       - Transfer
+  #     abis:
+  #       - name: ERC20
+  #         file: ./abis/ERC20.json
+  #     eventHandlers:
+  #       - event: Transfer(indexed address,indexed address,uint256)
+  #         handler: handleTransfer
+  #     file: ./src/mapping.ts
+
+# Templates for dynamically tracking new tokens
+templates:
+  - kind: ethereum/contract
+    name: ERC20Template
+    network: mainnet
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - Account
+        - AccountBalance
+        - BalanceSnapshot
+        - Transfer
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/mapping.ts

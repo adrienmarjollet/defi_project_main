@@ -1,32 +1,68 @@
 [tool.poetry]
-name = "defi with chainstack + cryo"
-version = "0.1.0"
-description = "chainstack/python/cryo"
+name = "defi-multichain"
+version = "0.2.0"
+description = "Multi-chain DeFi analytics with The Graph + Helius (ETH, BSC, Solana)"
 authors = ["Adrien Marjollet <adrien.marjollet1@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0.0"
-maturin = "^1.8.1"
-cryo = "^0.3.2"
-python-dotenv = "^1.0.1"
+
+# Core data processing
 pandas = "^2.2.3"
 polars = "^1.21.0"
-plotly = "^6.0.0"
 pyarrow = "^19.0.0"
+
+# EVM blockchain interaction
 web3 = "^7.8.0"
-matplotlib = "^3.10.0"
-pyfixture = "^0.7"
-pre-commit = "^4.1.0"
+
+# Solana blockchain interaction
+solana = "^0.34.0"
+solders = "^0.21.0"
+
+# HTTP & GraphQL clients
+requests = "^2.31.0"
+gql = {extras = ["requests"], version = "^3.5.0"}
+
+# Environment & configuration
+python-dotenv = "^1.0.1"
+
+# Database
 sqlalchemy = "^2.0.38"
 psycopg2-binary = "^2.9.10"
+
+# Visualization
+plotly = "^6.0.0"
+matplotlib = "^3.10.0"
+
+# Web framework (optional, for API)
 django = "^5.1.6"
+
+# Testing
+pyfixture = "^0.7"
+pre-commit = "^4.1.0"
+
+# Build tools (keep for compatibility)
+maturin = "^1.8.1"
+
+# DEPRECATED: cryo - unmaintained, replaced by The Graph
+# cryo = "^0.3.2"
 
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
 ruff = "^0.9.5"
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]  # Line too long (handled by formatter)
