@@ -23,7 +23,7 @@ Before you begin, ensure you have the following installed:
 | Requirement | Version | Check Command |
 |-------------|---------|---------------|
 | Python | 3.10+ | `python --version` |
-| Poetry | Latest | `poetry --version` |
+| uv | Latest | `uv --version` |
 | Git | Latest | `git --version` |
 | Node.js (optional) | 18+ | `node --version` |
 
@@ -38,9 +38,16 @@ sudo apt update && sudo apt install python3.10 python3.10-venv
 brew install python@3.10
 ```
 
-**Poetry (Python dependency manager):**
+**uv (Python package & project manager):**
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+# Linux/macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or with pip
+pip install uv
 ```
 
 **Node.js (only needed for subgraph development):**
@@ -59,21 +66,18 @@ nvm install 18
 git clone <repository-url>
 cd defi_project_main
 
-# 2. Install dependencies
-poetry install
+# 2. Install dependencies and create virtual environment
+uv sync
 
 # 3. Setup environment
 cp .env.example .env
 # Edit .env with your API keys (see API Keys Setup section)
 
-# 4. Activate virtual environment
-poetry shell
+# 4. Verify installation
+uv run make unittest
 
-# 5. Verify installation
-make unittest
-
-# 6. Run the example
-python examples/multichain_example.py
+# 5. Run the example
+uv run python examples/multichain_example.py
 ```
 
 ---
@@ -89,14 +93,14 @@ cd defi_project_main
 
 ### Step 2: Install Python Dependencies
 
-The project uses Poetry for dependency management:
+The project uses uv for dependency management:
 
 ```bash
 # Install all dependencies (including dev dependencies)
-poetry install
+uv sync
 
-# Activate the virtual environment
-poetry shell
+# Or install only production dependencies
+uv sync --no-dev
 ```
 
 This installs:
@@ -110,7 +114,7 @@ This installs:
 ### Step 3: Setup Pre-commit Hooks (Recommended)
 
 ```bash
-pre-commit install
+uv run pre-commit install
 ```
 
 This enables automatic code linting with `ruff` on each commit.
@@ -225,7 +229,7 @@ CMC_API_KEY=YOUR_CMC_KEY
 Run the demo script to test all chain integrations:
 
 ```bash
-python examples/multichain_example.py
+uv run python examples/multichain_example.py
 ```
 
 This script demonstrates:
@@ -238,7 +242,7 @@ This script demonstrates:
 Launch the interactive web dashboard:
 
 ```bash
-streamlit run front/streamlit/main.py
+uv run streamlit run front/streamlit/main.py
 ```
 
 The dashboard will be available at: **http://localhost:5000**
@@ -280,29 +284,29 @@ prices = fetcher.get_historical_prices(
 
 ```bash
 # Using make
-make unittest
+uv run make unittest
 
 # Using pytest
-pytest defi_library/unitary/ -v
+uv run pytest defi_library/unitary/ -v
 
 # Using unittest
-python -m unittest discover defi_library/unitary -v
+uv run python -m unittest discover defi_library/unitary -v
 ```
 
 ### Run Specific Test Files
 
 ```bash
 # Historical price tests
-pytest defi_library/unitary/test_historical_prices.py -v
+uv run pytest defi_library/unitary/test_historical_prices.py -v
 
 # Etherscan integration tests
-pytest defi_library/unitary/test_etherscan_methods.py -v
+uv run pytest defi_library/unitary/test_etherscan_methods.py -v
 ```
 
 ### Test Coverage
 
 ```bash
-pytest defi_library/unitary/ --cov=defi_library --cov-report=html
+uv run pytest defi_library/unitary/ --cov=defi_library --cov-report=html
 ```
 
 ---
@@ -374,12 +378,12 @@ make stop_postgres
 
 ### Common Issues
 
-#### 1. Poetry install fails
+#### 1. uv sync fails
 
 ```bash
 # Clear cache and retry
-poetry cache clear . --all
-poetry install
+uv cache clean
+uv sync
 ```
 
 #### 2. Web3 connection errors
@@ -402,22 +406,23 @@ poetry install
 #### 5. Import errors
 
 ```bash
-# Ensure you're in the poetry environment
-poetry shell
+# Run commands with uv run to use the virtual environment
+uv run python your_script.py
 
-# Or run with poetry
-poetry run python your_script.py
+# Or activate the virtual environment manually
+source .venv/bin/activate  # Linux/macOS
+.venv\Scripts\activate     # Windows
 ```
 
 #### 6. Pre-commit hook failures
 
 ```bash
 # Run ruff manually to see issues
-ruff check .
+uv run ruff check .
 
 # Auto-fix issues
-ruff check --fix .
-ruff format .
+uv run ruff check --fix .
+uv run ruff format .
 ```
 
 ### Getting Help
@@ -472,6 +477,6 @@ Running this project with free tier APIs:
 ## Next Steps
 
 1. Complete the [Quick Start](#quick-start) setup
-2. Run `python examples/multichain_example.py` to verify everything works
-3. Launch the dashboard with `streamlit run front/streamlit/main.py`
+2. Run `uv run python examples/multichain_example.py` to verify everything works
+3. Launch the dashboard with `uv run streamlit run front/streamlit/main.py`
 4. Explore the API in `defi_library/` for custom integrations
