@@ -1,33 +1,68 @@
 import os
-import time
 from dotenv import load_dotenv
 import cryo
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from web3 import Web3
 import streamlit as st
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots
+
+# Load environment variables
+load_dotenv()
 
 st.set_page_config(page_title="Holders statistics", page_icon="📈")
 
-# Constants
-LOOKBACK_BLOCKS = 100 # Approx a day in the past
-CONTRACT_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' # WETH
-WALLET_ADDRESS = '0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852'   # WETH-USDT pool Uniswap V2
+# Environment variable name
+ETH_RPC_VAR = "ETH_RPC_URL"
 
-CONTRACT_ADDRESS = '0x6982508145454ce325ddbe47a25d4ec3d2311933' # PEPE
-WALLET_ADDRESS = '0x1c06c36a559bbe99adece16eb7a63c5e997b2ef3'   # pepe whale
-WALLET_ADDRESS = '0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852'   # WETH-USDT pool Uniswap V2
-#TODO: fix it to display balance of any token
+# Default values (can be overridden via UI)
+DEFAULT_CONTRACT = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+DEFAULT_WALLET = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852"    # WETH-USDT pool Uniswap V2
+DEFAULT_LOOKBACK = 100
 
-#TODO add manual selection from a choice of tokens in a dic in a SQL data base 
+# Sidebar configuration
+st.sidebar.header("Configuration")
+
+CONTRACT_ADDRESS = st.sidebar.text_input(
+    "Token Contract Address",
+    value=DEFAULT_CONTRACT,
+    help="ERC-20 token contract address to analyze"
+)
+
+WALLET_ADDRESS = st.sidebar.text_input(
+    "Wallet/Pool Address",
+    value=DEFAULT_WALLET,
+    help="Wallet or pool address to track balance"
+)
+
+LOOKBACK_BLOCKS = st.sidebar.slider(
+    "Lookback Blocks",
+    min_value=10,
+    max_value=7200,
+    value=DEFAULT_LOOKBACK,
+    step=10,
+    help="Number of blocks to look back (100 blocks ~ 20 minutes)"
+)
+
+# Common tokens for quick selection
+COMMON_TOKENS = {
+    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
+    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+}
+
+selected_token = st.sidebar.selectbox(
+    "Quick Select Token",
+    options=["Custom"] + list(COMMON_TOKENS.keys()),
+    help="Select a common token or use custom address above"
+)
+
+if selected_token != "Custom":
+    CONTRACT_ADDRESS = COMMON_TOKENS[selected_token]
 
 
-class EthRPC():
+class EthRPC:
     def __init__(self):
-        # load_dotenv()
         self.eth_rpc = os.getenv(ETH_RPC_VAR)
         self.w3 = Web3(Web3.HTTPProvider(self.eth_rpc))
         self.check_eth_rpc_connection()
@@ -102,29 +137,44 @@ class EthRPC():
         # Display the plot in Streamlit
         st.plotly_chart(fig)
 
-if __name__ == "__main__":
-
-    ETH_RPC_VAR = "ETH_RPC"
-    eth_rpc = os.getenv(ETH_RPC_VAR)
-    w3 = Web3(Web3.HTTPProvider(eth_rpc))
-
-    # initialize a new instance of the class
-    rpc = EthRPC()     
+def main():
+    """Main entry point for the Streamlit app."""
+    try:
+        rpc = EthRPC()
+    except (ValueError, ConnectionError) as e:
+        st.error(f"Connection Error: {e}")
+        st.info(f"Please ensure the {ETH_RPC_VAR} environment variable is set correctly.")
+        st.stop()
 
     block_range = rpc.get_block_range(LOOKBACK_BLOCKS)
-    # Fetch the data
-    data = rpc.fetch_erc20_balances(block_range)
+
+    with st.spinner("Fetching balance data..."):
+        data = rpc.fetch_erc20_balances(block_range)
 
     if data.empty:
-        st.write("No data available for plotting.")
+        st.warning("No data available for the selected parameters.")
+        st.info("Try adjusting the contract address, wallet address, or lookback period.")
         st.stop()
 
     # Prepare data for plotting
-    data = data[['block_number', 'erc20', 'address', 'balance_string']]
-    data['balance_ether'] = data['balance_string'].apply(rpc.convert_balance_to_ether)
-    data = data[data['balance_ether'].notnull()]  # Filter out rows with None values
+    data = data[["block_number", "erc20", "address", "balance_string"]]
+    data["balance_ether"] = data["balance_string"].apply(rpc.convert_balance_to_ether)
+    data = data[data["balance_ether"].notnull()]
+
+    if data.empty:
+        st.warning("No valid balance data found after processing.")
+        st.stop()
+
+    # Display summary stats
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Summary")
+    st.sidebar.metric("Data Points", len(data))
+    st.sidebar.metric("Latest Balance", f"{data['balance_ether'].iloc[-1]:.4f}")
 
     # Plot the balance changes over time
     rpc.plot_balance_change_over_time(data)
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
+if __name__ == "__main__":
+    main()
+

@@ -60,8 +60,8 @@ class Web3Queries:
         self.db_web3_path = os.path.join(data_dir, "web3_database.db")
         # DB connection
         self.engine = create_engine(
-            f"sqlite:///{self.db_web3_path}", echo=True
-        )  # Create a database engine, echo=True will print SQL queries
+            f"sqlite:///{self.db_web3_path}", echo=False
+        )  # Create a database engine
         Base.metadata.create_all(
             self.engine
         )  # Creates tables only if they don't exist. If the tables already exist, it does nothing
@@ -257,9 +257,6 @@ class Web3Queries:
             {"address": address, "fromBlock": from_block, "topics": [transfer_hash]}
         ]
         logs = self.get_rpc_response("eth_getLogs", params)["result"]
-        from pprint import pprint as pp
-
-        pp(logs[100])
         decimals_factor = Decimal("10") ** Decimal("-{}".format(decimals))
         for log in logs:
             log["amount"] = Decimal(str(int(log["data"], 16))) * decimals_factor
