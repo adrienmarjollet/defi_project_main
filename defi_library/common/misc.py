@@ -45,9 +45,7 @@ def load_env_variables(root_path: Path, list_env_vars: List[str]) -> List[str]:
         env_var_value = os.getenv(env_var)
         if env_var_value is None:
             raise ValueError(f'{env_var} is not set in the .env file')
-        else:
-            print(f'Env variable {env_var} loaded.')
-            l_values.append(env_var_value)
+        l_values.append(env_var_value)
 
     return l_values        
 
