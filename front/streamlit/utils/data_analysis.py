@@ -641,28 +641,6 @@ def calculate_concentration_metrics(
         "median_balance": round(float(np.median(balances)), 6),
         "mean_balance": round(float(np.mean(balances)), 6),
     }
-def interpret_gini_coefficient(gini: float) -> Tuple[str, str]:
-    """
-    Provide human-readable interpretation of Gini coefficient.
-
-    Args:
-        gini: Gini coefficient value (0-1)
-
-    Returns:
-        Tuple of (interpretation, severity level)
-    """
-    return interpret_metric(gini, "gini")
-def interpret_hhi(hhi: float) -> Tuple[str, str]:
-    """
-    Provide human-readable interpretation of Herfindahl-Hirschman Index.
-
-    Args:
-        hhi: HHI value (0-10000)
-
-    Returns:
-        Tuple of (interpretation, severity level)
-    """
-    return interpret_metric(hhi, "hhi")
 def create_distribution_histogram_data(
     balances: np.ndarray,
     num_bins: int = 50,
@@ -977,17 +955,6 @@ def calculate_whale_movement_alerts(
     alerts.sort(key=lambda x: x.get("block_number", 0), reverse=True)
 
     return alerts
-def interpret_whale_pattern(pattern: str) -> Tuple[str, str]:
-    """
-    Provide human-readable interpretation of whale pattern.
-
-    Args:
-        pattern: Pattern string from detect_whale_accumulation_pattern
-
-    Returns:
-        Tuple of (interpretation, severity level)
-    """
-    return interpret_pattern(pattern, "whale_pattern")
 # ============================================================================
 # Bubble Map Visualization Utilities
 # ============================================================================
@@ -1820,21 +1787,3 @@ def calculate_risk_trend(
         "avg_risk": round(np.mean(scores), 2),
         "volatility": round(np.std(scores), 2) if len(scores) > 2 else 0,
     }
-
-
-def prepare_health_score_export_data(
-    data: Dict,
-    token_symbol: str
-) -> Dict:
-    """
-    Prepare health score data for export.
-
-    Args:
-        data: Dictionary containing health score data
-        token_symbol: Token symbol
-
-    Returns:
-        Dictionary with export-ready data
-    """
-    return prepare_export_data(data, "health_score", token_symbol)
-

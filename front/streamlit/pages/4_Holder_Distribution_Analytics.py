@@ -36,8 +36,7 @@ from utils.data_analysis import (
     build_lorenz_curve,
     classify_holder_tiers,
     calculate_concentration_metrics,
-    interpret_gini_coefficient as interpret_gini_util,
-    interpret_hhi as interpret_hhi_util,
+    interpret_metric,
     create_distribution_histogram_data,
 )
 
@@ -403,7 +402,7 @@ def main():
         col1, col2 = st.columns(2)
 
         with col1:
-            gini_interp, gini_level = interpret_gini_util(metrics["gini"])
+            gini_interp, gini_level = interpret_metric(metrics["gini"], "gini")
             if gini_level == "good":
                 st.success(f"**Gini Interpretation:** {gini_interp}")
             elif gini_level == "moderate":
@@ -414,7 +413,7 @@ def main():
                 st.error(f"**Gini Interpretation:** {gini_interp}")
 
         with col2:
-            hhi_interp, hhi_level = interpret_hhi_util(metrics["hhi"])
+            hhi_interp, hhi_level = interpret_metric(metrics["hhi"], "hhi")
             if hhi_level == "good":
                 st.success(f"**HHI Interpretation:** {hhi_interp}")
             elif hhi_level == "moderate":
@@ -505,7 +504,7 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        gini_interp, gini_level = interpret_gini_util(metrics["gini"])
+        gini_interp, gini_level = interpret_metric(metrics["gini"], "gini")
         if gini_level == "good":
             st.success(f"**Gini Interpretation:** {gini_interp}")
         elif gini_level == "moderate":
@@ -516,7 +515,7 @@ def main():
             st.error(f"**Gini Interpretation:** {gini_interp}")
 
     with col2:
-        hhi_interp, hhi_level = interpret_hhi_util(metrics["hhi"])
+        hhi_interp, hhi_level = interpret_metric(metrics["hhi"], "hhi")
         if hhi_level == "good":
             st.success(f"**HHI Interpretation:** {hhi_interp}")
         elif hhi_level == "moderate":

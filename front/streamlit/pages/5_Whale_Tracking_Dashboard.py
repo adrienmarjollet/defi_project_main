@@ -41,7 +41,7 @@ from utils.data_analysis import (
     calculate_whale_stability_score,
     prepare_stacked_area_data,
     calculate_whale_movement_alerts,
-    interpret_whale_pattern,
+    interpret_pattern,
 )
 
 # Load environment variables
@@ -561,7 +561,7 @@ def main():
         col1, col2 = st.columns(2)
 
         with col1:
-            interpretation, sentiment = interpret_whale_pattern(pattern_analysis["pattern"])
+            interpretation, sentiment = interpret_pattern(pattern_analysis["pattern"], "whale_pattern")
             if sentiment == "bullish":
                 st.success(f"**Pattern Analysis:** {interpretation}")
             elif sentiment == "mild_bullish":
@@ -703,7 +703,7 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        interpretation, sentiment = interpret_whale_pattern(pattern_analysis["pattern"])
+        interpretation, sentiment = interpret_pattern(pattern_analysis["pattern"], "whale_pattern")
         if sentiment == "bullish":
             st.success(f"**Pattern Analysis:** {interpretation}")
         elif sentiment == "mild_bullish":

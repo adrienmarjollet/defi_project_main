@@ -36,7 +36,6 @@ from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 # Import utility functions
 from utils.data_analysis import (
     calculate_health_score_trend,
-    prepare_health_score_export_data,
     interpret_health_trend,
 )
 
