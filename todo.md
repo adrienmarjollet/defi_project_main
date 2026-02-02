@@ -116,8 +116,8 @@ Composite risk/quality indicator based on holder metrics.
 
 ---
 
-### 6. Suspicious Activity Detection
-**Priority:** High | **Effort:** High
+### 6. Suspicious Activity Detection [COMPLETED]
+**Priority:** High | **Effort:** High | **Status:** Done
 
 Flag potential scam/manipulation patterns.
 
@@ -132,6 +132,12 @@ Flag potential scam/manipulation patterns.
 - Risk flags with severity levels
 - Visual highlighting of suspicious wallets
 - Transaction flow diagrams
+
+**Implemented files:**
+- `defi_library/blocks_scraping/dev/thegraph/suspicious_activity_queries.py` - Core detection logic
+- `defi_library/common/models.py` - Added `SuspiciousActivitySnapshot` model
+- `front/streamlit/pages/8_Suspicious_Activity_Detection.py` - Streamlit dashboard
+- `front/streamlit/utils/data_analysis.py` - Added suspicious activity utilities
 
 ---
 
@@ -199,7 +205,7 @@ Notifications for significant holder events.
 |-------|----------|----------|
 | Phase 1 | ~~Holder count over time~~, ~~Holder distribution analysis~~ | Completed |
 | Phase 2 | ~~Whale tracking dashboard~~, ~~Bubble map visualization~~ | Completed |
-| Phase 3 | ~~Token health score~~, Suspicious activity detection | In Progress |
+| Phase 3 | ~~Token health score~~, ~~Suspicious activity detection~~ | Completed |
 | Phase 4 | Smart money tracking, Cohort analysis | - |
 | Phase 5 | Comparative analysis, Alert system | - |
 
