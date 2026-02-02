@@ -104,6 +104,39 @@ class WhaleTrackingSnapshot(Base):
     )
 
 
+class TokenHealthScoreSnapshot(Base):
+    """
+    Model for storing token health score snapshots.
+
+    Used to track composite health scores over time including
+    component scores for holder count, concentration, growth trend,
+    whale stability, and contract ratio.
+    """
+    __tablename__ = "token_health_score_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    token_address = Column(String(42), nullable=False, index=True)
+    overall_score = Column(Float, nullable=False)  # 0-100
+    holder_count_score = Column(Float, nullable=False)  # Component scores
+    concentration_score = Column(Float, nullable=False)
+    growth_trend_score = Column(Float, nullable=False)
+    whale_stability_score = Column(Float, nullable=False)
+    contract_ratio_score = Column(Float, nullable=False)
+    health_grade = Column(String(2), nullable=False)  # A+, A, B, C, D, F
+    risk_level = Column(String(10), nullable=False)  # Low, Medium, High, Critical
+    holder_count = Column(Integer, nullable=True)
+    block_number = Column(Integer, nullable=False, index=True)
+    timestamp = Column(Integer, nullable=False, index=True)
+    chain_id = Column(Integer, default=1)  # 1 = Ethereum mainnet
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Composite indexes for efficient queries
+    __table_args__ = (
+        Index('ix_health_snapshots_token_block', 'token_address', 'block_number'),
+        Index('ix_health_snapshots_token_timestamp', 'token_address', 'timestamp'),
+    )
+
+
 engine = create_engine(DATABASE_URI)
 Session = sessionmaker(bind=engine)
 session = Session()
