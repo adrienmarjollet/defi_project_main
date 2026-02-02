@@ -5,10 +5,18 @@ from web3 import Web3
 import streamlit as st
 import plotly.graph_objs as go
 
+# Import shared utilities
+from utils.streamlit_config import (
+    configure_page,
+    setup_sidebar_header,
+    COMMON_TOKENS,
+)
+from utils.components import token_selector
+
 # Load environment variables
 load_dotenv()
 
-st.set_page_config(page_title="Holders statistics", page_icon="📈")
+configure_page(page_title="Holders statistics", page_icon="📈", layout="centered")
 
 # Environment variable name
 ETH_RPC_VAR = "ETH_RPC_URL"
@@ -19,7 +27,7 @@ DEFAULT_WALLET = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852"    # WETH-USDT poo
 DEFAULT_LOOKBACK = 100
 
 # Sidebar configuration
-st.sidebar.header("Configuration")
+setup_sidebar_header()
 
 CONTRACT_ADDRESS = st.sidebar.text_input(
     "Token Contract Address",
@@ -42,14 +50,7 @@ LOOKBACK_BLOCKS = st.sidebar.slider(
     help="Number of blocks to look back (100 blocks ~ 20 minutes)"
 )
 
-# Common tokens for quick selection
-COMMON_TOKENS = {
-    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-}
-
+# Quick token selection using shared component logic
 selected_token = st.sidebar.selectbox(
     "Quick Select Token",
     options=["Custom"] + list(COMMON_TOKENS.keys()),

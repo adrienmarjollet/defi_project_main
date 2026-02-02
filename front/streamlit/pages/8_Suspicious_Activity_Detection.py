@@ -52,9 +52,19 @@ from utils.analysis import (
 from defi_library.constants import ACTIVITY_NAMES
 from utils.streamlit_config import (
     configure_page,
+    setup_sidebar_header,
+    get_subgraph_url_input,
+    is_demo_mode,
+    show_demo_mode_warning,
+    validate_token_address,
     COMMON_TOKENS,
     DEFAULT_TOKEN,
-    DEFAULT_SUBGRAPH_URL,
+)
+from utils.components import (
+    token_selector,
+    sidebar_analysis_summary,
+    risk_level_indicator,
+    severity_badge,
 )
 
 # Load environment variables
@@ -308,33 +318,13 @@ def main():
     """)
 
     # Sidebar configuration
-    st.sidebar.header("Configuration")
+    setup_sidebar_header()
 
     # Subgraph URL input
-    subgraph_url = st.sidebar.text_input(
-        "Subgraph URL",
-        value=os.getenv("ERC20_SUBGRAPH_URL", DEFAULT_SUBGRAPH_URL),
-        help="URL of your deployed ERC-20 tracker subgraph"
-    )
+    subgraph_url = get_subgraph_url_input()
 
-    # Token selection
-    st.sidebar.subheader("Token Selection")
-
-    selected_token = st.sidebar.selectbox(
-        "Quick Select Token",
-        options=["Custom"] + list(COMMON_TOKENS.keys()),
-        help="Select a common token or enter custom address"
-    )
-
-    if selected_token == "Custom":
-        token_address = st.sidebar.text_input(
-            "Token Contract Address",
-            value=DEFAULT_TOKEN,
-            help="ERC-20 token contract address to analyze"
-        )
-    else:
-        token_address = COMMON_TOKENS[selected_token]
-        st.sidebar.code(token_address, language=None)
+    # Token selection using shared component
+    token_address = token_selector()
 
     # Detection settings
     st.sidebar.subheader("Detection Settings")
@@ -346,21 +336,11 @@ def main():
     include_sybil = st.sidebar.checkbox("Sybil Cluster Detection", value=True)
 
     # Validate inputs
-    if not token_address or not token_address.startswith("0x"):
-        st.error("Please enter a valid Ethereum address (starting with 0x)")
+    if not validate_token_address(token_address):
         st.stop()
 
-    if "YOUR_ID" in subgraph_url:
-        st.warning("""
-        **Subgraph URL not configured**
-
-        To use this feature, you need to deploy an ERC-20 tracker subgraph and provide its URL.
-
-        1. Deploy the subgraph from `defi_library/subgraphs/erc20-tracker/`
-        2. Set the URL in the sidebar or via `ERC20_SUBGRAPH_URL` environment variable
-
-        **Demo Mode**: Showing sample data for illustration purposes.
-        """)
+    if is_demo_mode(subgraph_url):
+        show_demo_mode_warning()
 
         # Show demo with sample data
         report = generate_demo_report()
@@ -634,11 +614,11 @@ def main():
         """)
 
     # Sidebar summary
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Risk Summary")
-    st.sidebar.metric("Risk Score", f"{report_dict['overall_risk_score']:.1f}/100")
-    st.sidebar.metric("Risk Level", report_dict['risk_level'])
-    st.sidebar.metric("Total Flags", report_dict['total_flags'])
+    sidebar_analysis_summary({
+        "Risk Score": f"{report_dict['overall_risk_score']:.1f}/100",
+        "Risk Level": report_dict['risk_level'],
+        "Total Flags": report_dict['total_flags'],
+    }, title="Risk Summary")
 
     if report_dict['critical_flags'] > 0:
         st.sidebar.error(f"Critical Flags: {report_dict['critical_flags']}")
