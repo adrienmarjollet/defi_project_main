@@ -1005,3 +1005,264 @@ def prepare_whale_export_data(
         "whale_history": history_df.to_dict(orient="records") if not history_df.empty else []
     }
 
+
+# ============================================================================
+# Bubble Map Visualization Utilities
+# ============================================================================
+
+def calculate_bubble_positions(
+    n: int,
+    layout: str = "spiral",
+    scale: float = 10.0
+) -> np.ndarray:
+    """
+    Calculate positions for bubble layout.
+
+    Args:
+        n: Number of positions to generate
+        layout: Layout type ("spiral", "grid", "random")
+        scale: Scale factor for the layout
+
+    Returns:
+        Array of (x, y) positions
+    """
+    positions = np.zeros((n, 2))
+
+    if layout == "spiral":
+        # Fermat spiral for even distribution
+        golden_angle = np.pi * (3 - np.sqrt(5))
+        for i in range(n):
+            radius = scale * np.sqrt(i + 1)
+            theta = i * golden_angle
+            positions[i, 0] = radius * np.cos(theta)
+            positions[i, 1] = radius * np.sin(theta)
+
+    elif layout == "grid":
+        # Grid layout
+        cols = int(np.ceil(np.sqrt(n)))
+        for i in range(n):
+            row = i // cols
+            col = i % cols
+            positions[i, 0] = col * scale
+            positions[i, 1] = row * scale
+
+    elif layout == "random":
+        # Random layout with some structure
+        np.random.seed(42)
+        positions = np.random.randn(n, 2) * scale
+
+    return positions
+
+
+def calculate_bubble_sizes(
+    balances: np.ndarray,
+    method: str = "log",
+    min_size: float = 5.0,
+    max_size: float = 50.0
+) -> np.ndarray:
+    """
+    Calculate bubble sizes from balances.
+
+    Args:
+        balances: Array of balance values
+        method: Sizing method ("log", "sqrt", "linear")
+        min_size: Minimum bubble size
+        max_size: Maximum bubble size
+
+    Returns:
+        Array of bubble sizes
+    """
+    if len(balances) == 0:
+        return np.array([])
+
+    # Handle zero/negative values
+    balances = np.clip(balances, 1e-18, None)
+
+    if method == "log":
+        sizes = np.log10(balances + 1)
+    elif method == "sqrt":
+        sizes = np.sqrt(balances)
+    else:  # linear
+        sizes = balances
+
+    # Normalize to size range
+    if sizes.max() > sizes.min():
+        normalized = (sizes - sizes.min()) / (sizes.max() - sizes.min())
+    else:
+        normalized = np.ones_like(sizes) * 0.5
+
+    return normalized * (max_size - min_size) + min_size
+
+
+def aggregate_by_wallet_type(
+    df: pd.DataFrame,
+    balance_col: str = "balance",
+    type_col: str = "wallet_type"
+) -> Dict[str, Dict]:
+    """
+    Aggregate holder data by wallet type.
+
+    Args:
+        df: DataFrame with holder data
+        balance_col: Name of balance column
+        type_col: Name of wallet type column
+
+    Returns:
+        Dictionary with aggregated stats per wallet type
+    """
+    if df.empty or type_col not in df.columns:
+        return {}
+
+    total_balance = df[balance_col].sum()
+
+    result = {}
+    for wallet_type in df[type_col].unique():
+        subset = df[df[type_col] == wallet_type]
+        type_balance = subset[balance_col].sum()
+
+        result[wallet_type] = {
+            "count": len(subset),
+            "total_balance": type_balance,
+            "percentage": round(type_balance / total_balance * 100, 2) if total_balance > 0 else 0,
+            "avg_balance": round(type_balance / len(subset), 4) if len(subset) > 0 else 0,
+            "max_balance": subset[balance_col].max(),
+            "min_balance": subset[balance_col].min()
+        }
+
+    return result
+
+
+def aggregate_by_tier(
+    df: pd.DataFrame,
+    percentage_col: str = "percentage"
+) -> Dict[str, Dict]:
+    """
+    Aggregate holder data by tier (whale/dolphin/fish).
+
+    Args:
+        df: DataFrame with holder data
+        percentage_col: Name of percentage column
+
+    Returns:
+        Dictionary with aggregated stats per tier
+    """
+    if df.empty or percentage_col not in df.columns:
+        return {}
+
+    def get_tier(pct):
+        if pct >= 1.0:
+            return "whale"
+        elif pct >= 0.1:
+            return "dolphin"
+        return "fish"
+
+    df_copy = df.copy()
+    df_copy["tier"] = df_copy[percentage_col].apply(get_tier)
+
+    result = {}
+    for tier in ["whale", "dolphin", "fish"]:
+        subset = df_copy[df_copy["tier"] == tier]
+        tier_pct = subset[percentage_col].sum()
+
+        result[tier] = {
+            "count": len(subset),
+            "total_percentage": round(tier_pct, 2),
+            "avg_percentage": round(tier_pct / len(subset), 4) if len(subset) > 0 else 0,
+            "max_percentage": subset[percentage_col].max() if len(subset) > 0 else 0,
+            "min_percentage": subset[percentage_col].min() if len(subset) > 0 else 0
+        }
+
+    return result
+
+
+def calculate_holder_diversity_score(
+    df: pd.DataFrame,
+    type_col: str = "wallet_type",
+    percentage_col: str = "percentage"
+) -> Dict[str, float]:
+    """
+    Calculate diversity metrics for holder distribution.
+
+    Args:
+        df: DataFrame with holder data
+        type_col: Name of wallet type column
+        percentage_col: Name of percentage column
+
+    Returns:
+        Dictionary with diversity metrics
+    """
+    if df.empty:
+        return {
+            "type_diversity_score": 0.0,
+            "tier_diversity_score": 0.0,
+            "overall_diversity_score": 0.0,
+            "eoa_dominance": 0.0
+        }
+
+    # Type diversity (Shannon entropy)
+    type_counts = df[type_col].value_counts(normalize=True)
+    type_entropy = -np.sum(type_counts * np.log2(type_counts + 1e-10))
+    max_type_entropy = np.log2(len(type_counts)) if len(type_counts) > 1 else 1
+    type_diversity = type_entropy / max_type_entropy if max_type_entropy > 0 else 0
+
+    # Tier diversity
+    def get_tier(pct):
+        if pct >= 1.0:
+            return "whale"
+        elif pct >= 0.1:
+            return "dolphin"
+        return "fish"
+
+    df_copy = df.copy()
+    df_copy["tier"] = df_copy[percentage_col].apply(get_tier)
+
+    tier_counts = df_copy["tier"].value_counts(normalize=True)
+    tier_entropy = -np.sum(tier_counts * np.log2(tier_counts + 1e-10))
+    max_tier_entropy = np.log2(3)  # 3 tiers
+    tier_diversity = tier_entropy / max_tier_entropy if max_tier_entropy > 0 else 0
+
+    # EOA dominance
+    eoa_count = len(df[df[type_col] == "eoa"]) if "eoa" in df[type_col].values else 0
+    eoa_dominance = eoa_count / len(df) * 100 if len(df) > 0 else 0
+
+    # Overall diversity (weighted average)
+    overall = (type_diversity * 0.4 + tier_diversity * 0.6) * 100
+
+    return {
+        "type_diversity_score": round(type_diversity * 100, 2),
+        "tier_diversity_score": round(tier_diversity * 100, 2),
+        "overall_diversity_score": round(overall, 2),
+        "eoa_dominance": round(eoa_dominance, 2)
+    }
+
+
+def prepare_bubble_map_export_data(
+    df: pd.DataFrame,
+    type_aggregation: Dict,
+    tier_aggregation: Dict,
+    diversity_metrics: Dict,
+    token_symbol: str
+) -> Dict:
+    """
+    Prepare bubble map data for export (JSON/CSV).
+
+    Args:
+        df: DataFrame with holder data
+        type_aggregation: Aggregation by wallet type
+        tier_aggregation: Aggregation by tier
+        diversity_metrics: Diversity score metrics
+        token_symbol: Token symbol
+
+    Returns:
+        Dictionary with export-ready data
+    """
+    return {
+        "token_symbol": token_symbol,
+        "generated_at": datetime.utcnow().isoformat(),
+        "total_holders": len(df),
+        "wallet_type_distribution": type_aggregation,
+        "tier_distribution": tier_aggregation,
+        "diversity_metrics": diversity_metrics,
+        "holders": df.to_dict(orient="records") if not df.empty else []
+    }
+

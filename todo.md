@@ -50,8 +50,8 @@ Follow top N holders' balances over time.
 
 ---
 
-### 3. Bubble Map Visualization
-**Priority:** High | **Effort:** Medium
+### 3. Bubble Map Visualization [COMPLETED]
+**Priority:** High | **Effort:** Medium | **Status:** Done
 
 Interactive bubble chart of all holders.
 
@@ -64,6 +64,11 @@ Interactive bubble chart of all holders.
 **Enhancements:**
 - Force-directed graph showing transfers between holders
 - Cluster detection (wallets that move together)
+
+**Implemented files:**
+- `defi_library/blocks_scraping/dev/thegraph/bubble_map_queries.py` - Core query and wallet classification logic
+- `front/streamlit/pages/6_Bubble_Map_Visualization.py` - Streamlit dashboard with bubble map, treemap, sunburst
+- `front/streamlit/utils/data_analysis.py` - Added bubble map visualization utilities
 
 ---
 
@@ -187,7 +192,7 @@ Notifications for significant holder events.
 | Phase | Features | Timeline |
 |-------|----------|----------|
 | Phase 1 | ~~Holder count over time~~, ~~Holder distribution analysis~~ | Completed |
-| Phase 2 | ~~Whale tracking dashboard~~, Bubble map visualization | In Progress |
+| Phase 2 | ~~Whale tracking dashboard~~, ~~Bubble map visualization~~ | Completed |
 | Phase 3 | Token health score, Suspicious activity detection | - |
 | Phase 4 | Smart money tracking, Cohort analysis | - |
 | Phase 5 | Comparative analysis, Alert system | - |
