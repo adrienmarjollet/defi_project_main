@@ -45,6 +45,37 @@ class HolderCountSnapshot(Base):
     )
 
 
+class HolderDistributionSnapshot(Base):
+    """
+    Model for storing holder distribution analysis snapshots.
+
+    Used to track distribution metrics over time including
+    Gini coefficient, holder tiers, and concentration metrics.
+    """
+    __tablename__ = "holder_distribution_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    token_address = Column(String(42), nullable=False, index=True)
+    gini_coefficient = Column(Float, nullable=False)
+    top_10_concentration = Column(Float, nullable=False)
+    top_50_concentration = Column(Float, nullable=False)
+    whale_count = Column(Integer, nullable=False)  # >1% of supply
+    dolphin_count = Column(Integer, nullable=False)  # 0.1-1% of supply
+    fish_count = Column(Integer, nullable=False)  # <0.1% of supply
+    total_holders = Column(Integer, nullable=False)
+    herfindahl_index = Column(Float, nullable=True)  # HHI
+    block_number = Column(Integer, nullable=False, index=True)
+    timestamp = Column(Integer, nullable=False, index=True)
+    chain_id = Column(Integer, default=1)  # 1 = Ethereum mainnet
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Composite index for efficient queries
+    __table_args__ = (
+        Index('ix_distribution_snapshots_token_block', 'token_address', 'block_number'),
+        Index('ix_distribution_snapshots_token_timestamp', 'token_address', 'timestamp'),
+    )
+
+
 engine = create_engine(DATABASE_URI)
 Session = sessionmaker(bind=engine)
 session = Session()
