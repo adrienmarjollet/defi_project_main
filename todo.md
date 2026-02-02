@@ -91,8 +91,8 @@ Analyze the shape of holder distribution.
 
 ---
 
-### 5. Token Health Score
-**Priority:** High | **Effort:** Medium
+### 5. Token Health Score [COMPLETED]
+**Priority:** High | **Effort:** Medium | **Status:** Done
 
 Composite risk/quality indicator based on holder metrics.
 
@@ -107,6 +107,12 @@ Composite risk/quality indicator based on holder metrics.
 - Score from 0-100
 - Breakdown by category
 - Historical score tracking
+
+**Implemented files:**
+- `defi_library/blocks_scraping/dev/thegraph/token_health_score_queries.py` - Core query and calculation logic
+- `defi_library/common/models.py` - Added `TokenHealthScoreSnapshot` model
+- `front/streamlit/pages/7_Token_Health_Score.py` - Streamlit dashboard with gauge chart, radar chart, component breakdown
+- `front/streamlit/utils/data_analysis.py` - Added health score utilities
 
 ---
 
@@ -193,7 +199,7 @@ Notifications for significant holder events.
 |-------|----------|----------|
 | Phase 1 | ~~Holder count over time~~, ~~Holder distribution analysis~~ | Completed |
 | Phase 2 | ~~Whale tracking dashboard~~, ~~Bubble map visualization~~ | Completed |
-| Phase 3 | Token health score, Suspicious activity detection | - |
+| Phase 3 | ~~Token health score~~, Suspicious activity detection | In Progress |
 | Phase 4 | Smart money tracking, Cohort analysis | - |
 | Phase 5 | Comparative analysis, Alert system | - |
 
