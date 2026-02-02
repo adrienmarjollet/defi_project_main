@@ -137,6 +137,37 @@ class TokenHealthScoreSnapshot(Base):
     )
 
 
+class SuspiciousActivitySnapshot(Base):
+    """
+    Model for storing suspicious activity detection snapshots.
+
+    Used to track detected manipulation patterns and red flags
+    including wash trading, concentration spikes, coordinated wallets,
+    dump patterns, and Sybil cluster detection.
+    """
+    __tablename__ = "suspicious_activity_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    token_address = Column(String(42), nullable=False, index=True)
+    activity_type = Column(String(50), nullable=False)  # wash_trading, concentration_spike, etc.
+    severity = Column(String(20), nullable=False)  # critical, high, medium, low
+    description = Column(String(500), nullable=True)
+    involved_addresses = Column(String(2000), nullable=True)  # JSON array of addresses
+    evidence = Column(String(2000), nullable=True)  # JSON evidence data
+    risk_score = Column(Float, nullable=False)  # 0-100 contribution to overall risk
+    block_number = Column(Integer, nullable=False, index=True)
+    timestamp = Column(Integer, nullable=False, index=True)
+    chain_id = Column(Integer, default=1)  # 1 = Ethereum mainnet
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Composite indexes for efficient queries
+    __table_args__ = (
+        Index('ix_suspicious_activity_token_block', 'token_address', 'block_number'),
+        Index('ix_suspicious_activity_token_timestamp', 'token_address', 'timestamp'),
+        Index('ix_suspicious_activity_token_type', 'token_address', 'activity_type'),
+    )
+
+
 engine = create_engine(DATABASE_URI)
 Session = sessionmaker(bind=engine)
 session = Session()
