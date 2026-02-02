@@ -280,15 +280,17 @@ def generate_demo_health_score():
         contract_ratio_score * SCORE_WEIGHTS['contract_ratio']
     )
 
-    # Determine grade
+    # Determine grade (simplified 5-tier system)
     if overall_score >= 80:
-        grade = "B+"
-    elif overall_score >= 70:
-        grade = "B"
+        grade = "A"
     elif overall_score >= 60:
-        grade = "C+"
-    else:
+        grade = "B"
+    elif overall_score >= 40:
         grade = "C"
+    elif overall_score >= 20:
+        grade = "D"
+    else:
+        grade = "F"
 
     # Determine risk level
     if overall_score >= 80:
@@ -492,21 +494,13 @@ def main():
 
             ### Grade Scale
 
-            | Score Range | Grade | Risk Level |
-            |-------------|-------|------------|
-            | 95-100 | A+ | Low |
-            | 90-94 | A | Low |
-            | 85-89 | A- | Low |
-            | 80-84 | B+ | Low |
-            | 75-79 | B | Medium |
-            | 70-74 | B- | Medium |
-            | 65-69 | C+ | Medium |
-            | 60-64 | C | Medium |
-            | 55-59 | C- | High |
-            | 50-54 | D+ | High |
-            | 45-49 | D | High |
-            | 40-44 | D- | High |
-            | <40 | F | Critical |
+            | Score Range | Grade | Risk Level | Description |
+            |-------------|-------|------------|-------------|
+            | 80-100 | A | Low | Excellent - Strong fundamentals |
+            | 60-79 | B | Medium | Good - Solid metrics |
+            | 40-59 | C | High | Fair - Some concerns |
+            | 20-39 | D | High | Poor - Significant risks |
+            | 0-19 | F | Critical | Critical - Major red flags |
             """)
 
         st.stop()
@@ -642,21 +636,13 @@ def main():
 
         ### Grade Scale
 
-        | Score Range | Grade | Risk Level |
-        |-------------|-------|------------|
-        | 95-100 | A+ | Low |
-        | 90-94 | A | Low |
-        | 85-89 | A- | Low |
-        | 80-84 | B+ | Low |
-        | 75-79 | B | Medium |
-        | 70-74 | B- | Medium |
-        | 65-69 | C+ | Medium |
-        | 60-64 | C | Medium |
-        | 55-59 | C- | High |
-        | 50-54 | D+ | High |
-        | 45-49 | D | High |
-        | 40-44 | D- | High |
-        | <40 | F | Critical |
+        | Score Range | Grade | Risk Level | Description |
+        |-------------|-------|------------|-------------|
+        | 80-100 | A | Low | Excellent - Strong fundamentals |
+        | 60-79 | B | Medium | Good - Solid metrics |
+        | 40-59 | C | High | Fair - Some concerns |
+        | 20-39 | D | High | Poor - Significant risks |
+        | 0-19 | F | Critical | Critical - Major red flags |
         """)
 
     # Sidebar summary

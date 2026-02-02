@@ -7,7 +7,7 @@ for tokens based on various holder metrics.
 Features:
 - Composite health score from 0-100
 - Component scores: holder count, concentration, growth trend, whale stability, contract ratio
-- Health grade (A+, A, B, C, D, F) and risk level classification
+- Health grade (A, B, C, D, F) and risk level classification
 - Historical health score tracking
 """
 
@@ -56,7 +56,7 @@ class TokenHealthScore:
     """Complete token health score with all components and metadata."""
     overall_score: float  # 0-100, weighted average of components
     components: HealthScoreComponents
-    health_grade: str  # A+, A, B, C, D, F
+    health_grade: str  # A, B, C, D, F
     risk_level: str  # "Low", "Medium", "High", "Critical"
     risk_factors: List[str]  # List of identified risk factors
     positive_factors: List[str]  # List of positive indicators
@@ -552,31 +552,24 @@ class TokenHealthScoreQueries:
             return None
 
     def _score_to_grade(self, score: float) -> str:
-        """Convert numeric score to letter grade."""
-        if score >= 95:
-            return "A+"
-        elif score >= 90:
+        """
+        Convert numeric score to letter grade.
+
+        Simplified 5-tier grading system:
+        - A: score >= 80 (Excellent)
+        - B: score >= 60 (Good)
+        - C: score >= 40 (Fair)
+        - D: score >= 20 (Poor)
+        - F: score < 20 (Critical)
+        """
+        if score >= 80:
             return "A"
-        elif score >= 85:
-            return "A-"
-        elif score >= 80:
-            return "B+"
-        elif score >= 75:
-            return "B"
-        elif score >= 70:
-            return "B-"
-        elif score >= 65:
-            return "C+"
         elif score >= 60:
-            return "C"
-        elif score >= 55:
-            return "C-"
-        elif score >= 50:
-            return "D+"
-        elif score >= 45:
-            return "D"
+            return "B"
         elif score >= 40:
-            return "D-"
+            return "C"
+        elif score >= 20:
+            return "D"
         else:
             return "F"
 
@@ -748,24 +741,16 @@ def get_grade_color(grade: str) -> str:
     Get color code for grade visualization.
 
     Args:
-        grade: Letter grade (A+ to F)
+        grade: Letter grade (A, B, C, D, F)
 
     Returns:
         Hex color code
     """
     grade_colors = {
-        "A+": "#28a745",
-        "A": "#28a745",
-        "A-": "#5cb85c",
-        "B+": "#5cb85c",
-        "B": "#8bc34a",
-        "B-": "#8bc34a",
-        "C+": "#ffc107",
-        "C": "#ffc107",
-        "C-": "#fd7e14",
-        "D+": "#fd7e14",
-        "D": "#dc3545",
-        "D-": "#dc3545",
-        "F": "#c82333"
+        "A": "#28a745",  # Green - Excellent (score >= 80)
+        "B": "#5cb85c",  # Light green - Good (score >= 60)
+        "C": "#ffc107",  # Yellow - Fair (score >= 40)
+        "D": "#fd7e14",  # Orange - Poor (score >= 20)
+        "F": "#dc3545",  # Red - Critical (score < 20)
     }
     return grade_colors.get(grade, "#6c757d")

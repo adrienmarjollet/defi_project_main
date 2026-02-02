@@ -122,7 +122,7 @@ class TokenHealthScoreSnapshot(Base):
     growth_trend_score = Column(Float, nullable=False)
     whale_stability_score = Column(Float, nullable=False)
     contract_ratio_score = Column(Float, nullable=False)
-    health_grade = Column(String(2), nullable=False)  # A+, A, B, C, D, F
+    health_grade = Column(String(1), nullable=False)  # A, B, C, D, F
     risk_level = Column(String(10), nullable=False)  # Low, Medium, High, Critical
     holder_count = Column(Integer, nullable=True)
     block_number = Column(Integer, nullable=False, index=True)
