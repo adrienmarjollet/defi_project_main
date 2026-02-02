@@ -34,9 +34,6 @@ class HistoricalPriceFetcher:
     # DeFiLlama API base URL
     DEFILLAMA_BASE_URL = "https://coins.llama.fi"
 
-    # CoinGecko API base URL (fallback)
-    COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
-
     # Chain identifiers for DeFiLlama
     CHAIN_IDS = {
         'ethereum': 'ethereum',
@@ -185,39 +182,6 @@ class HistoricalPriceFetcher:
             print(f"DeFiLlama API error for {chain}:{address}: {e}")
         except (KeyError, json.JSONDecodeError) as e:
             print(f"Error parsing DeFiLlama response: {e}")
-
-        return None
-
-    def get_price_from_coingecko(
-        self,
-        coin_id: str,
-        date: str  # Format: DD-MM-YYYY
-    ) -> Optional[float]:
-        """
-        Fetch historical price from CoinGecko API (fallback).
-
-        Args:
-            coin_id: CoinGecko coin ID (e.g., 'ethereum', 'binancecoin')
-            date: Date string in DD-MM-YYYY format
-
-        Returns:
-            Price in USD or None if not available
-        """
-        url = f"{self.COINGECKO_BASE_URL}/coins/{coin_id}/history?date={date}"
-
-        self._rate_limit()
-
-        try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-
-            return data.get('market_data', {}).get('current_price', {}).get('usd')
-
-        except requests.RequestException as e:
-            print(f"CoinGecko API error for {coin_id}: {e}")
-        except (KeyError, json.JSONDecodeError) as e:
-            print(f"Error parsing CoinGecko response: {e}")
 
         return None
 
@@ -373,34 +337,6 @@ class HistoricalPriceFetcher:
     def get_cached_prices(self) -> Dict:
         """Return all cached prices."""
         return self._cache.copy()
-
-
-# CoinGecko ID mapping for fallback
-COINGECKO_IDS = {
-    'ethereum': {
-        'WETH': 'weth',
-        'ETH': 'ethereum',
-        'USDC': 'usd-coin',
-        'USDT': 'tether',
-        'PEPE': 'pepe',
-        'SHIB': 'shiba-inu',
-        'LINK': 'chainlink',
-        'UNI': 'uniswap',
-    },
-    'bsc': {
-        'BNB': 'binancecoin',
-        'WBNB': 'wbnb',
-        'BUSD': 'binance-usd',
-        'CAKE': 'pancakeswap-token',
-    },
-    'solana': {
-        'SOL': 'solana',
-        'BONK': 'bonk',
-        'JTO': 'jito-governance-token',
-        'WIF': 'dogwifcoin',
-        'PYTH': 'pyth-network',
-    }
-}
 
 
 def main():
