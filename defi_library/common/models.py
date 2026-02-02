@@ -76,6 +76,34 @@ class HolderDistributionSnapshot(Base):
     )
 
 
+class WhaleTrackingSnapshot(Base):
+    """
+    Model for storing whale (top holder) tracking snapshots.
+
+    Used to track individual whale balances over time for
+    monitoring accumulation/distribution patterns and large movements.
+    """
+    __tablename__ = "whale_tracking_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    token_address = Column(String(42), nullable=False, index=True)
+    whale_address = Column(String(42), nullable=False, index=True)
+    balance = Column(Float, nullable=False)
+    percentage = Column(Float, nullable=False)  # % of total supply
+    rank = Column(Integer, nullable=True)  # Rank among holders at this snapshot
+    block_number = Column(Integer, nullable=False, index=True)
+    timestamp = Column(Integer, nullable=False, index=True)
+    chain_id = Column(Integer, default=1)  # 1 = Ethereum mainnet
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Composite indexes for efficient queries
+    __table_args__ = (
+        Index('ix_whale_snapshots_token_block', 'token_address', 'block_number'),
+        Index('ix_whale_snapshots_token_whale', 'token_address', 'whale_address'),
+        Index('ix_whale_snapshots_token_whale_timestamp', 'token_address', 'whale_address', 'timestamp'),
+    )
+
+
 engine = create_engine(DATABASE_URI)
 Session = sessionmaker(bind=engine)
 session = Session()
