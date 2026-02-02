@@ -16,26 +16,29 @@ Features:
 
 import logging
 from dataclasses import dataclass
-from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
 import pandas as pd
 
+from .base_queries import (
+    BaseQueries,
+    format_address as _format_address,
+    classify_holder_tier,
+    normalize_address,
+)
 from .graph_client import GraphClient, raw_to_decimal
 from .queries import ERC20Queries
 
+# Import consolidated constants
+from defi_library.constants import (
+    WalletType,
+    WALLET_TYPE_COLORS,
+    get_wallet_type_color,
+    get_tier_from_percentage,
+)
+
 logger = logging.getLogger(__name__)
-
-
-class WalletType(Enum):
-    """Classification of wallet types."""
-    EOA = "eoa"  # Externally Owned Account (regular user)
-    CONTRACT = "contract"  # Smart contract
-    EXCHANGE = "exchange"  # Known exchange wallet
-    BRIDGE = "bridge"  # Bridge contract
-    WHALE = "whale"  # Large holder (>1% of supply)
-    UNKNOWN = "unknown"
 
 
 # Known exchange addresses (lowercase)
@@ -440,6 +443,7 @@ class BubbleMapQueries:
         return pd.DataFrame(records)
 
 
+# Alias for backward compatibility - use format_address from base_queries
 def format_address(address: str, length: int = 6) -> str:
     """
     Format address for display (shortened form).
@@ -450,46 +454,11 @@ def format_address(address: str, length: int = 6) -> str:
 
     Returns:
         Shortened address (e.g., "0x1234...5678")
+
+    Note:
+        This is an alias for format_address from base_queries module.
     """
-    if len(address) <= length * 2 + 3:
-        return address
-    return f"{address[:length]}...{address[-length:]}"
+    return _format_address(address, length)
 
 
-def get_wallet_type_color(wallet_type: WalletType) -> str:
-    """
-    Get color for wallet type visualization.
-
-    Args:
-        wallet_type: WalletType enum value
-
-    Returns:
-        Hex color string
-    """
-    colors = {
-        WalletType.EOA: "#2ecc71",  # Green
-        WalletType.CONTRACT: "#3498db",  # Blue
-        WalletType.EXCHANGE: "#e67e22",  # Orange
-        WalletType.BRIDGE: "#9b59b6",  # Purple
-        WalletType.WHALE: "#e74c3c",  # Red
-        WalletType.UNKNOWN: "#95a5a6",  # Gray
-    }
-    return colors.get(wallet_type, "#95a5a6")
-
-
-def get_tier_from_percentage(percentage: float) -> str:
-    """
-    Get holder tier from percentage of supply.
-
-    Args:
-        percentage: Percentage of total supply
-
-    Returns:
-        Tier string: "whale", "dolphin", or "fish"
-    """
-    if percentage >= 1.0:
-        return "whale"
-    elif percentage >= 0.1:
-        return "dolphin"
-    else:
-        return "fish"
+# get_wallet_type_color and get_tier_from_percentage are imported from defi_library.constants

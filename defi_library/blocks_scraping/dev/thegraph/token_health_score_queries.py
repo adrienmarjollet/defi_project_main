@@ -18,6 +18,11 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from .base_queries import (
+    BaseQueries,
+    BLOCKS_PER_DAY,
+    BLOCKS_PER_WEEK,
+)
 from .graph_client import GraphClient
 from .queries import ERC20Queries
 from .holder_distribution_queries import HolderDistributionQueries
@@ -25,11 +30,14 @@ from .whale_tracking_queries import WhaleTrackingQueries
 from .holder_count_queries import HolderCountQueries
 from .bubble_map_queries import BubbleMapQueries
 
-logger = logging.getLogger(__name__)
+# Import color utilities from consolidated constants
+from defi_library.constants import (
+    GRADE_COLORS,
+    get_score_color,
+    get_grade_color,
+)
 
-# Constants for scoring
-BLOCKS_PER_DAY = 7200  # ~12 second blocks
-BLOCKS_PER_WEEK = BLOCKS_PER_DAY * 7
+logger = logging.getLogger(__name__)
 
 # Scoring weights (must sum to 1.0)
 SCORE_WEIGHTS = {
@@ -714,43 +722,4 @@ def interpret_component_score(component_name: str, score: float) -> Tuple[str, s
     return interp, status
 
 
-def get_score_color(score: float) -> str:
-    """
-    Get color code for score visualization.
-
-    Args:
-        score: Score value (0-100)
-
-    Returns:
-        Hex color code
-    """
-    if score >= 80:
-        return "#28a745"  # Green
-    elif score >= 60:
-        return "#5cb85c"  # Light green
-    elif score >= 50:
-        return "#ffc107"  # Yellow
-    elif score >= 40:
-        return "#fd7e14"  # Orange
-    else:
-        return "#dc3545"  # Red
-
-
-def get_grade_color(grade: str) -> str:
-    """
-    Get color code for grade visualization.
-
-    Args:
-        grade: Letter grade (A, B, C, D, F)
-
-    Returns:
-        Hex color code
-    """
-    grade_colors = {
-        "A": "#28a745",  # Green - Excellent (score >= 80)
-        "B": "#5cb85c",  # Light green - Good (score >= 60)
-        "C": "#ffc107",  # Yellow - Fair (score >= 40)
-        "D": "#fd7e14",  # Orange - Poor (score >= 20)
-        "F": "#dc3545",  # Red - Critical (score < 20)
-    }
-    return grade_colors.get(grade, "#6c757d")
+# get_score_color and get_grade_color are imported from defi_library.constants

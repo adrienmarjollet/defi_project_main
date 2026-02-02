@@ -43,43 +43,25 @@ from defi_library.blocks_scraping.dev.thegraph.suspicious_activity_queries impor
 )
 from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 
-# Import utility functions
-from utils.data_analysis import (
+# Import utility functions from modular analysis package
+from utils.analysis import (
     prepare_export_data,
+)
+
+# Import shared constants and Streamlit configuration
+from defi_library.constants import ACTIVITY_NAMES
+from utils.streamlit_config import (
+    configure_page,
+    COMMON_TOKENS,
+    DEFAULT_TOKEN,
+    DEFAULT_SUBGRAPH_URL,
 )
 
 # Load environment variables
 load_dotenv()
 
 # Page configuration
-st.set_page_config(
-    page_title="Suspicious Activity Detection",
-    page_icon="🔍",
-    layout="wide"
-)
-
-# Default values
-DEFAULT_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
-DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
-
-# Common tokens for quick selection
-COMMON_TOKENS = {
-    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "SHIB": "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
-    "UNI": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-}
-
-# Activity type display names
-ACTIVITY_NAMES = {
-    ACTIVITY_WASH_TRADING: "Wash Trading",
-    ACTIVITY_CONCENTRATION_SPIKE: "Concentration Spike",
-    ACTIVITY_COORDINATED_WALLETS: "Coordinated Wallets",
-    ACTIVITY_DUMP_PATTERN: "Dump Pattern",
-    ACTIVITY_SYBIL_CLUSTER: "Sybil Cluster",
-}
+configure_page(page_title="Suspicious Activity Detection", page_icon="...")
 
 
 def create_risk_gauge(risk_score: float, title: str = "Risk Score") -> go.Figure:
