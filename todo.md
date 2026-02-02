@@ -26,8 +26,8 @@ Track unique holder count evolution to detect growth/decline trends.
 
 ---
 
-### 2. Whale Tracking Dashboard
-**Priority:** High | **Effort:** Medium
+### 2. Whale Tracking Dashboard [COMPLETED]
+**Priority:** High | **Effort:** Medium | **Status:** Done
 
 Follow top N holders' balances over time.
 
@@ -41,6 +41,12 @@ Follow top N holders' balances over time.
 - Stacked area chart (show how whale composition changes)
 - Individual whale balance sparklines
 - "Whale activity feed" showing recent large movements
+
+**Implemented files:**
+- `defi_library/blocks_scraping/dev/thegraph/whale_tracking_queries.py` - Core query and tracking logic
+- `defi_library/common/models.py` - Added `WhaleTrackingSnapshot` model
+- `front/streamlit/pages/5_Whale_Tracking_Dashboard.py` - Streamlit dashboard
+- `front/streamlit/utils/data_analysis.py` - Added whale tracking utilities
 
 ---
 
@@ -181,7 +187,7 @@ Notifications for significant holder events.
 | Phase | Features | Timeline |
 |-------|----------|----------|
 | Phase 1 | ~~Holder count over time~~, ~~Holder distribution analysis~~ | Completed |
-| Phase 2 | Whale tracking dashboard, Bubble map visualization | - |
+| Phase 2 | ~~Whale tracking dashboard~~, Bubble map visualization | In Progress |
 | Phase 3 | Token health score, Suspicious activity detection | - |
 | Phase 4 | Smart money tracking, Cohort analysis | - |
 | Phase 5 | Comparative analysis, Alert system | - |

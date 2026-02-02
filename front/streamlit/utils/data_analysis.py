@@ -630,3 +630,378 @@ def prepare_distribution_export_data(
         "top_holders": df.head(100).to_dict(orient="records") if not df.empty else []
     }
 
+
+# ============================================================================
+# Whale Tracking Utilities
+# ============================================================================
+
+def calculate_whale_concentration_change(
+    history_df: pd.DataFrame,
+    whale_addresses: Optional[List[str]] = None
+) -> Dict[str, float]:
+    """
+    Calculate how whale concentration has changed over time.
+
+    Args:
+        history_df: DataFrame with whale balance history
+        whale_addresses: Optional list of whale addresses to analyze
+
+    Returns:
+        Dictionary with concentration change metrics
+    """
+    if history_df.empty:
+        return {
+            "start_concentration": 0.0,
+            "end_concentration": 0.0,
+            "concentration_change": 0.0,
+            "concentration_change_pct": 0.0
+        }
+
+    df = history_df.copy()
+
+    if whale_addresses:
+        df = df[df["address"].isin(whale_addresses)]
+
+    if df.empty:
+        return {
+            "start_concentration": 0.0,
+            "end_concentration": 0.0,
+            "concentration_change": 0.0,
+            "concentration_change_pct": 0.0
+        }
+
+    # Get first and last block data
+    first_block = df["block_number"].min()
+    last_block = df["block_number"].max()
+
+    start_data = df[df["block_number"] == first_block]
+    end_data = df[df["block_number"] == last_block]
+
+    start_concentration = start_data["percentage"].sum()
+    end_concentration = end_data["percentage"].sum()
+
+    change = end_concentration - start_concentration
+    change_pct = (change / start_concentration * 100) if start_concentration > 0 else 0
+
+    return {
+        "start_concentration": round(start_concentration, 2),
+        "end_concentration": round(end_concentration, 2),
+        "concentration_change": round(change, 2),
+        "concentration_change_pct": round(change_pct, 2)
+    }
+
+
+def detect_whale_accumulation_pattern(
+    history_df: pd.DataFrame,
+    threshold_pct: float = 5.0
+) -> Dict[str, any]:
+    """
+    Detect accumulation/distribution patterns among whales.
+
+    Args:
+        history_df: DataFrame with whale balance history
+        threshold_pct: Minimum change percentage to count as significant
+
+    Returns:
+        Dictionary with pattern analysis
+    """
+    if history_df.empty:
+        return {
+            "pattern": "unknown",
+            "accumulating_whales": 0,
+            "distributing_whales": 0,
+            "stable_whales": 0,
+            "total_whales": 0,
+            "net_flow": 0.0
+        }
+
+    accumulating = 0
+    distributing = 0
+    stable = 0
+    net_flow = 0.0
+
+    for address in history_df["address"].unique():
+        whale_data = history_df[history_df["address"] == address].sort_values("block_number")
+
+        if len(whale_data) < 2:
+            stable += 1
+            continue
+
+        start_balance = whale_data["balance"].iloc[0]
+        end_balance = whale_data["balance"].iloc[-1]
+
+        if start_balance > 0:
+            change_pct = (end_balance - start_balance) / start_balance * 100
+            net_flow += end_balance - start_balance
+
+            if change_pct > threshold_pct:
+                accumulating += 1
+            elif change_pct < -threshold_pct:
+                distributing += 1
+            else:
+                stable += 1
+        else:
+            if end_balance > 0:
+                accumulating += 1
+            else:
+                stable += 1
+
+    total = accumulating + distributing + stable
+
+    # Determine overall pattern
+    if total == 0:
+        pattern = "unknown"
+    elif accumulating > distributing * 2:
+        pattern = "strong_accumulation"
+    elif distributing > accumulating * 2:
+        pattern = "strong_distribution"
+    elif accumulating > distributing:
+        pattern = "mild_accumulation"
+    elif distributing > accumulating:
+        pattern = "mild_distribution"
+    else:
+        pattern = "neutral"
+
+    return {
+        "pattern": pattern,
+        "accumulating_whales": accumulating,
+        "distributing_whales": distributing,
+        "stable_whales": stable,
+        "total_whales": total,
+        "net_flow": round(net_flow, 4)
+    }
+
+
+def calculate_whale_stability_score(
+    history_df: pd.DataFrame
+) -> Dict[str, float]:
+    """
+    Calculate a stability score for whale holdings.
+
+    Higher score = more stable holdings (less movement).
+
+    Args:
+        history_df: DataFrame with whale balance history
+
+    Returns:
+        Dictionary with stability metrics
+    """
+    if history_df.empty:
+        return {
+            "stability_score": 0.0,
+            "avg_volatility": 0.0,
+            "most_stable_whale": None,
+            "most_volatile_whale": None
+        }
+
+    whale_volatilities = {}
+
+    for address in history_df["address"].unique():
+        whale_data = history_df[history_df["address"] == address].sort_values("block_number")
+
+        if len(whale_data) < 2:
+            continue
+
+        balances = whale_data["balance"].values
+        mean_balance = np.mean(balances)
+
+        if mean_balance > 0:
+            # Coefficient of variation as volatility measure
+            volatility = np.std(balances) / mean_balance
+            whale_volatilities[address] = volatility
+
+    if not whale_volatilities:
+        return {
+            "stability_score": 0.0,
+            "avg_volatility": 0.0,
+            "most_stable_whale": None,
+            "most_volatile_whale": None
+        }
+
+    avg_volatility = np.mean(list(whale_volatilities.values()))
+
+    # Stability score: inverse of volatility, scaled to 0-100
+    # Lower volatility = higher stability
+    stability_score = max(0, min(100, (1 - avg_volatility) * 100))
+
+    most_stable = min(whale_volatilities, key=whale_volatilities.get)
+    most_volatile = max(whale_volatilities, key=whale_volatilities.get)
+
+    return {
+        "stability_score": round(stability_score, 2),
+        "avg_volatility": round(avg_volatility * 100, 2),  # as percentage
+        "most_stable_whale": most_stable,
+        "most_volatile_whale": most_volatile
+    }
+
+
+def prepare_stacked_area_data(
+    history_df: pd.DataFrame,
+    top_n: int = 10
+) -> pd.DataFrame:
+    """
+    Prepare data for stacked area chart showing whale composition over time.
+
+    Args:
+        history_df: DataFrame with whale balance history
+        top_n: Number of top whales to include individually
+
+    Returns:
+        DataFrame pivoted for stacked area chart
+    """
+    if history_df.empty:
+        return pd.DataFrame()
+
+    df = history_df.copy()
+
+    # Get top N whales by average balance
+    whale_avg_balances = df.groupby("address")["balance"].mean().sort_values(ascending=False)
+    top_whales = whale_avg_balances.head(top_n).index.tolist()
+
+    # Filter to only top whales
+    df = df[df["address"].isin(top_whales)]
+
+    # Pivot to wide format
+    pivot_df = df.pivot_table(
+        index="block_number",
+        columns="address",
+        values="percentage",
+        aggfunc="first"
+    ).fillna(0)
+
+    # Sort columns by total holdings
+    col_sums = pivot_df.sum()
+    pivot_df = pivot_df[col_sums.sort_values(ascending=False).index]
+
+    pivot_df = pivot_df.reset_index()
+
+    return pivot_df
+
+
+def calculate_whale_movement_alerts(
+    history_df: pd.DataFrame,
+    threshold_pct: float = 5.0
+) -> List[Dict]:
+    """
+    Generate alerts for significant whale movements.
+
+    Args:
+        history_df: DataFrame with whale balance history
+        threshold_pct: Minimum percentage change to trigger alert
+
+    Returns:
+        List of alert dictionaries
+    """
+    if history_df.empty:
+        return []
+
+    alerts = []
+
+    for address in history_df["address"].unique():
+        whale_data = history_df[history_df["address"] == address].sort_values("block_number")
+
+        if len(whale_data) < 2:
+            continue
+
+        for i in range(1, len(whale_data)):
+            prev = whale_data.iloc[i - 1]
+            curr = whale_data.iloc[i]
+
+            from_balance = prev["balance"]
+            to_balance = curr["balance"]
+
+            if from_balance > 0:
+                change_pct = (to_balance - from_balance) / from_balance * 100
+
+                if abs(change_pct) >= threshold_pct:
+                    alert_type = "accumulation" if change_pct > 0 else "distribution"
+                    severity = "high" if abs(change_pct) > 20 else "medium"
+
+                    alerts.append({
+                        "address": address,
+                        "type": alert_type,
+                        "from_balance": round(from_balance, 4),
+                        "to_balance": round(to_balance, 4),
+                        "change_pct": round(change_pct, 2),
+                        "block_number": curr["block_number"],
+                        "timestamp": curr.get("timestamp"),
+                        "severity": severity
+                    })
+
+    # Sort by timestamp/block descending
+    alerts.sort(key=lambda x: x.get("block_number", 0), reverse=True)
+
+    return alerts
+
+
+def interpret_whale_pattern(pattern: str) -> Tuple[str, str]:
+    """
+    Provide human-readable interpretation of whale pattern.
+
+    Args:
+        pattern: Pattern string from detect_whale_accumulation_pattern
+
+    Returns:
+        Tuple of (interpretation, severity level)
+    """
+    interpretations = {
+        "strong_accumulation": (
+            "Whales are heavily accumulating - strong bullish signal",
+            "bullish"
+        ),
+        "mild_accumulation": (
+            "Whales showing net accumulation - mildly bullish",
+            "mild_bullish"
+        ),
+        "neutral": (
+            "Balanced whale activity - no clear directional bias",
+            "neutral"
+        ),
+        "mild_distribution": (
+            "Whales showing net distribution - mildly bearish",
+            "mild_bearish"
+        ),
+        "strong_distribution": (
+            "Whales heavily distributing - potential sell pressure ahead",
+            "bearish"
+        ),
+        "unknown": (
+            "Insufficient data to determine pattern",
+            "unknown"
+        )
+    }
+
+    return interpretations.get(pattern, ("Unknown pattern", "unknown"))
+
+
+def prepare_whale_export_data(
+    history_df: pd.DataFrame,
+    concentration_metrics: Dict,
+    pattern_analysis: Dict,
+    stability_metrics: Dict,
+    token_symbol: str
+) -> Dict:
+    """
+    Prepare whale tracking data for export (JSON/CSV).
+
+    Args:
+        history_df: DataFrame with whale balance history
+        concentration_metrics: Concentration change metrics
+        pattern_analysis: Accumulation/distribution pattern analysis
+        stability_metrics: Whale stability metrics
+        token_symbol: Token symbol
+
+    Returns:
+        Dictionary with export-ready data
+    """
+    return {
+        "token_symbol": token_symbol,
+        "generated_at": datetime.utcnow().isoformat(),
+        "concentration_metrics": concentration_metrics,
+        "pattern_analysis": pattern_analysis,
+        "stability_metrics": stability_metrics,
+        "whale_count": len(history_df["address"].unique()) if not history_df.empty else 0,
+        "data_points": len(history_df),
+        "whale_history": history_df.to_dict(orient="records") if not history_df.empty else []
+    }
+
