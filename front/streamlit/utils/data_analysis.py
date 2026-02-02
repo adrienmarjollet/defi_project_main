@@ -10,8 +10,76 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import numpy as np
+# ============================================================================
+# Generic Interpretation System
+# ============================================================================
 
+# Configuration for threshold-based interpretations
+# Each metric type has a list of (threshold, message, severity) tuples
+# evaluated in order - first matching threshold wins
+INTERPRETATION_CONFIG = {
+    "gini": [
+        (0.3, "Low inequality - relatively even distribution", "good"),
+        (0.5, "Moderate inequality - some concentration", "moderate"),
+        (0.7, "High inequality - significant concentration", "warning"),
+        (0.9, "Very high inequality - heavy concentration", "high"),
+        (float('inf'), "Extreme inequality - near total concentration", "critical"),
+    ],
+    "hhi": [
+        (1500, "Competitive - well distributed among holders", "good"),
+        (2500, "Moderately concentrated", "moderate"),
+        (float('inf'), "Highly concentrated - dominated by few holders", "warning"),
+    ],
+}
 
+# Lookup-based interpretations (for categorical/pattern values)
+PATTERN_INTERPRETATIONS = {
+    "whale_pattern": {
+        "strong_accumulation": ("Whales are heavily accumulating - strong bullish signal", "bullish"),
+        "mild_accumulation": ("Whales showing net accumulation - mildly bullish", "mild_bullish"),
+        "neutral": ("Balanced whale activity - no clear directional bias", "neutral"),
+        "mild_distribution": ("Whales showing net distribution - mildly bearish", "mild_bearish"),
+        "strong_distribution": ("Whales heavily distributing - potential sell pressure ahead", "bearish"),
+        "unknown": ("Insufficient data to determine pattern", "unknown"),
+    },
+}
+def interpret_metric(value: float, metric_type: str) -> Tuple[str, str]:
+    """
+    Generic threshold-based metric interpretation.
+
+    Args:
+        value: The metric value to interpret
+        metric_type: Type of metric (must be in INTERPRETATION_CONFIG)
+
+    Returns:
+        Tuple of (interpretation message, severity level)
+    """
+    if metric_type not in INTERPRETATION_CONFIG:
+        return f"Unknown metric type: {metric_type}", "unknown"
+
+    for threshold, message, severity in INTERPRETATION_CONFIG[metric_type]:
+        if value < threshold:
+            return message, severity
+
+    # Fallback (should not reach here with proper config)
+    return "Unable to interpret", "unknown"
+def interpret_pattern(pattern: str, pattern_type: str) -> Tuple[str, str]:
+    """
+    Generic pattern/category interpretation using lookup.
+
+    Args:
+        pattern: The pattern value to interpret
+        pattern_type: Type of pattern (must be in PATTERN_INTERPRETATIONS)
+
+    Returns:
+        Tuple of (interpretation message, severity level)
+    """
+    if pattern_type not in PATTERN_INTERPRETATIONS:
+        return f"Unknown pattern type: {pattern_type}", "unknown"
+
+    return PATTERN_INTERPRETATIONS[pattern_type].get(
+        pattern, ("Unknown pattern", "unknown")
+    )
 # ============================================================================
 # Holder Count Analysis Utilities
 # ============================================================================
@@ -52,8 +120,6 @@ def calculate_holder_growth_rate(
         df["growth_rate_30d_avg"] = df["growth_rate"].rolling(window=30).mean()
 
     return df
-
-
 def calculate_holder_growth_metrics(
     df: pd.DataFrame,
     holder_count_col: str = "holder_count"
@@ -108,8 +174,6 @@ def calculate_holder_growth_metrics(
         "end_holders": int(end_holders),
         "volatility": round(volatility, 2),
     }
-
-
 def detect_holder_anomalies(
     df: pd.DataFrame,
     holder_count_col: str = "holder_count",
@@ -155,8 +219,6 @@ def detect_holder_anomalies(
         df["anomaly_type"] = "normal"
 
     return df
-
-
 def classify_growth_pattern(metrics: Dict) -> str:
     """
     Classify the growth pattern based on metrics.
@@ -181,8 +243,6 @@ def classify_growth_pattern(metrics: Dict) -> str:
         return "organic"
     else:
         return "stable"
-
-
 # ============================================================================
 # Token Comparison Utilities
 # ============================================================================
@@ -224,8 +284,6 @@ def compare_holder_growth(
         return pd.DataFrame()
 
     return pd.concat(comparison_dfs, ignore_index=True)
-
-
 # ============================================================================
 # Time Series Utilities
 # ============================================================================
@@ -264,8 +322,6 @@ def resample_to_daily(
     daily = daily.reset_index()
 
     return daily
-
-
 def calculate_moving_averages(
     df: pd.DataFrame,
     value_col: str = "holder_count",
@@ -289,37 +345,105 @@ def calculate_moving_averages(
             df[f"ma_{window}d"] = df[value_col].rolling(window=window).mean()
 
     return df
-
-
 # ============================================================================
 # Export Utilities
 # ============================================================================
 
 def prepare_export_data(
-    df: pd.DataFrame,
-    metrics: Dict,
+    data: Dict,
+    export_type: str,
     token_symbol: str
 ) -> Dict:
     """
-    Prepare data for export (JSON/CSV).
+    Generic function to prepare data for export (JSON/CSV).
+
+    Consolidates multiple export preparation functions into one.
 
     Args:
-        df: DataFrame with holder count data
-        metrics: Dictionary of growth metrics
+        data: Dictionary containing all relevant data for the export type.
+              Expected keys vary by export_type:
+              - "holder_count": df, metrics
+              - "distribution": df, metrics, tiers
+              - "whale": history_df, concentration_metrics, pattern_analysis, stability_metrics
+              - "bubble_map": df, type_aggregation, tier_aggregation, diversity_metrics
+              - "health_score": health_score, component_analysis, trend_metrics
+        export_type: Type of export ("holder_count", "distribution", "whale",
+                     "bubble_map", "health_score")
         token_symbol: Token symbol
 
     Returns:
         Dictionary with export-ready data
     """
-    return {
+    base = {
         "token_symbol": token_symbol,
         "generated_at": datetime.utcnow().isoformat(),
-        "metrics": metrics,
-        "data_points": len(df),
-        "time_series": df.to_dict(orient="records") if not df.empty else []
     }
 
+    if export_type == "holder_count":
+        df = data.get("df", pd.DataFrame())
+        return {
+            **base,
+            "metrics": data.get("metrics", {}),
+            "data_points": len(df),
+            "time_series": df.to_dict(orient="records") if not df.empty else []
+        }
 
+    elif export_type == "distribution":
+        df = data.get("df", pd.DataFrame())
+        return {
+            **base,
+            "concentration_metrics": data.get("metrics", {}),
+            "holder_tiers": data.get("tiers", {}),
+            "total_holders": len(df),
+            "top_holders": df.head(100).to_dict(orient="records") if not df.empty else []
+        }
+
+    elif export_type == "whale":
+        history_df = data.get("history_df", pd.DataFrame())
+        return {
+            **base,
+            "concentration_metrics": data.get("concentration_metrics", {}),
+            "pattern_analysis": data.get("pattern_analysis", {}),
+            "stability_metrics": data.get("stability_metrics", {}),
+            "whale_count": len(history_df["address"].unique()) if not history_df.empty else 0,
+            "data_points": len(history_df),
+            "whale_history": history_df.to_dict(orient="records") if not history_df.empty else []
+        }
+
+    elif export_type == "bubble_map":
+        df = data.get("df", pd.DataFrame())
+        return {
+            **base,
+            "total_holders": len(df),
+            "wallet_type_distribution": data.get("type_aggregation", {}),
+            "tier_distribution": data.get("tier_aggregation", {}),
+            "diversity_metrics": data.get("diversity_metrics", {}),
+            "holders": df.to_dict(orient="records") if not df.empty else []
+        }
+
+    elif export_type == "health_score":
+        health_score = data.get("health_score", {})
+        return {
+            **base,
+            "overall_score": health_score.get("overall_score", 0),
+            "health_grade": health_score.get("health_grade", "N/A"),
+            "risk_level": health_score.get("risk_level", "Unknown"),
+            "components": health_score.get("components", {}),
+            "component_analysis": data.get("component_analysis", {}),
+            "risk_factors": health_score.get("risk_factors", []),
+            "positive_factors": health_score.get("positive_factors", []),
+            "trend_metrics": data.get("trend_metrics", {}),
+            "holder_count": health_score.get("holder_count", 0),
+            "block_number": health_score.get("block_number", 0),
+            "timestamp": health_score.get("timestamp", 0)
+        }
+
+    else:
+        # Fallback for unknown types
+        return {
+            **base,
+            "data": data
+        }
 # ============================================================================
 # Holder Distribution Analysis Utilities
 # ============================================================================
@@ -362,8 +486,6 @@ def calculate_gini_coefficient(balances: np.ndarray) -> float:
     gini = (2 * index_sum - (n + 1) * total) / (n * total)
 
     return round(float(gini), 4)
-
-
 def build_lorenz_curve(
     balances: np.ndarray,
     num_points: int = 100
@@ -413,8 +535,6 @@ def build_lorenz_curve(
         wealth_percentiles.append((cumsum[idx] / total) * 100)
 
     return np.array(population_percentiles), np.array(wealth_percentiles)
-
-
 def classify_holder_tiers(
     df: pd.DataFrame,
     balance_col: str = "balance",
@@ -458,8 +578,6 @@ def classify_holder_tiers(
         "fish": fish,
         "total": len(df)
     }
-
-
 def calculate_concentration_metrics(
     df: pd.DataFrame,
     balance_col: str = "balance"
@@ -523,8 +641,6 @@ def calculate_concentration_metrics(
         "median_balance": round(float(np.median(balances)), 6),
         "mean_balance": round(float(np.mean(balances)), 6),
     }
-
-
 def interpret_gini_coefficient(gini: float) -> Tuple[str, str]:
     """
     Provide human-readable interpretation of Gini coefficient.
@@ -535,18 +651,7 @@ def interpret_gini_coefficient(gini: float) -> Tuple[str, str]:
     Returns:
         Tuple of (interpretation, severity level)
     """
-    if gini < 0.3:
-        return "Low inequality - relatively even distribution", "good"
-    elif gini < 0.5:
-        return "Moderate inequality - some concentration", "moderate"
-    elif gini < 0.7:
-        return "High inequality - significant concentration", "warning"
-    elif gini < 0.9:
-        return "Very high inequality - heavy concentration", "high"
-    else:
-        return "Extreme inequality - near total concentration", "critical"
-
-
+    return interpret_metric(gini, "gini")
 def interpret_hhi(hhi: float) -> Tuple[str, str]:
     """
     Provide human-readable interpretation of Herfindahl-Hirschman Index.
@@ -557,14 +662,7 @@ def interpret_hhi(hhi: float) -> Tuple[str, str]:
     Returns:
         Tuple of (interpretation, severity level)
     """
-    if hhi < 1500:
-        return "Competitive - well distributed among holders", "good"
-    elif hhi < 2500:
-        return "Moderately concentrated", "moderate"
-    else:
-        return "Highly concentrated - dominated by few holders", "warning"
-
-
+    return interpret_metric(hhi, "hhi")
 def create_distribution_histogram_data(
     balances: np.ndarray,
     num_bins: int = 50,
@@ -601,36 +699,6 @@ def create_distribution_histogram_data(
     counts, bin_edges = np.histogram(balances, bins=bins)
 
     return bin_edges, counts
-
-
-def prepare_distribution_export_data(
-    df: pd.DataFrame,
-    metrics: Dict,
-    tiers: Dict,
-    token_symbol: str
-) -> Dict:
-    """
-    Prepare distribution analysis data for export (JSON/CSV).
-
-    Args:
-        df: DataFrame with holder balance data
-        metrics: Dictionary of concentration metrics
-        tiers: Dictionary of holder tier counts
-        token_symbol: Token symbol
-
-    Returns:
-        Dictionary with export-ready data
-    """
-    return {
-        "token_symbol": token_symbol,
-        "generated_at": datetime.utcnow().isoformat(),
-        "concentration_metrics": metrics,
-        "holder_tiers": tiers,
-        "total_holders": len(df),
-        "top_holders": df.head(100).to_dict(orient="records") if not df.empty else []
-    }
-
-
 # ============================================================================
 # Whale Tracking Utilities
 # ============================================================================
@@ -689,8 +757,6 @@ def calculate_whale_concentration_change(
         "concentration_change": round(change, 2),
         "concentration_change_pct": round(change_pct, 2)
     }
-
-
 def detect_whale_accumulation_pattern(
     history_df: pd.DataFrame,
     threshold_pct: float = 5.0
@@ -770,8 +836,6 @@ def detect_whale_accumulation_pattern(
         "total_whales": total,
         "net_flow": round(net_flow, 4)
     }
-
-
 def calculate_whale_stability_score(
     history_df: pd.DataFrame
 ) -> Dict[str, float]:
@@ -784,17 +848,12 @@ def calculate_whale_stability_score(
         history_df: DataFrame with whale balance history
 
     Returns:
-        Dictionary with stability metrics
+        Dictionary with stability_score (0-100) and avg_volatility (percentage)
     """
     if history_df.empty:
-        return {
-            "stability_score": 0.0,
-            "avg_volatility": 0.0,
-            "most_stable_whale": None,
-            "most_volatile_whale": None
-        }
+        return {"stability_score": 0.0, "avg_volatility": 0.0}
 
-    whale_volatilities = {}
+    volatilities = []
 
     for address in history_df["address"].unique():
         whale_data = history_df[history_df["address"] == address].sort_values("block_number")
@@ -808,33 +867,21 @@ def calculate_whale_stability_score(
         if mean_balance > 0:
             # Coefficient of variation as volatility measure
             volatility = np.std(balances) / mean_balance
-            whale_volatilities[address] = volatility
+            volatilities.append(volatility)
 
-    if not whale_volatilities:
-        return {
-            "stability_score": 0.0,
-            "avg_volatility": 0.0,
-            "most_stable_whale": None,
-            "most_volatile_whale": None
-        }
+    if not volatilities:
+        return {"stability_score": 0.0, "avg_volatility": 0.0}
 
-    avg_volatility = np.mean(list(whale_volatilities.values()))
+    avg_volatility = np.mean(volatilities)
 
     # Stability score: inverse of volatility, scaled to 0-100
     # Lower volatility = higher stability
     stability_score = max(0, min(100, (1 - avg_volatility) * 100))
 
-    most_stable = min(whale_volatilities, key=whale_volatilities.get)
-    most_volatile = max(whale_volatilities, key=whale_volatilities.get)
-
     return {
         "stability_score": round(stability_score, 2),
         "avg_volatility": round(avg_volatility * 100, 2),  # as percentage
-        "most_stable_whale": most_stable,
-        "most_volatile_whale": most_volatile
     }
-
-
 def prepare_stacked_area_data(
     history_df: pd.DataFrame,
     top_n: int = 10
@@ -876,8 +923,6 @@ def prepare_stacked_area_data(
     pivot_df = pivot_df.reset_index()
 
     return pivot_df
-
-
 def calculate_whale_movement_alerts(
     history_df: pd.DataFrame,
     threshold_pct: float = 5.0
@@ -932,8 +977,6 @@ def calculate_whale_movement_alerts(
     alerts.sort(key=lambda x: x.get("block_number", 0), reverse=True)
 
     return alerts
-
-
 def interpret_whale_pattern(pattern: str) -> Tuple[str, str]:
     """
     Provide human-readable interpretation of whale pattern.
@@ -944,115 +987,10 @@ def interpret_whale_pattern(pattern: str) -> Tuple[str, str]:
     Returns:
         Tuple of (interpretation, severity level)
     """
-    interpretations = {
-        "strong_accumulation": (
-            "Whales are heavily accumulating - strong bullish signal",
-            "bullish"
-        ),
-        "mild_accumulation": (
-            "Whales showing net accumulation - mildly bullish",
-            "mild_bullish"
-        ),
-        "neutral": (
-            "Balanced whale activity - no clear directional bias",
-            "neutral"
-        ),
-        "mild_distribution": (
-            "Whales showing net distribution - mildly bearish",
-            "mild_bearish"
-        ),
-        "strong_distribution": (
-            "Whales heavily distributing - potential sell pressure ahead",
-            "bearish"
-        ),
-        "unknown": (
-            "Insufficient data to determine pattern",
-            "unknown"
-        )
-    }
-
-    return interpretations.get(pattern, ("Unknown pattern", "unknown"))
-
-
-def prepare_whale_export_data(
-    history_df: pd.DataFrame,
-    concentration_metrics: Dict,
-    pattern_analysis: Dict,
-    stability_metrics: Dict,
-    token_symbol: str
-) -> Dict:
-    """
-    Prepare whale tracking data for export (JSON/CSV).
-
-    Args:
-        history_df: DataFrame with whale balance history
-        concentration_metrics: Concentration change metrics
-        pattern_analysis: Accumulation/distribution pattern analysis
-        stability_metrics: Whale stability metrics
-        token_symbol: Token symbol
-
-    Returns:
-        Dictionary with export-ready data
-    """
-    return {
-        "token_symbol": token_symbol,
-        "generated_at": datetime.utcnow().isoformat(),
-        "concentration_metrics": concentration_metrics,
-        "pattern_analysis": pattern_analysis,
-        "stability_metrics": stability_metrics,
-        "whale_count": len(history_df["address"].unique()) if not history_df.empty else 0,
-        "data_points": len(history_df),
-        "whale_history": history_df.to_dict(orient="records") if not history_df.empty else []
-    }
-
-
+    return interpret_pattern(pattern, "whale_pattern")
 # ============================================================================
 # Bubble Map Visualization Utilities
 # ============================================================================
-
-def calculate_bubble_positions(
-    n: int,
-    layout: str = "spiral",
-    scale: float = 10.0
-) -> np.ndarray:
-    """
-    Calculate positions for bubble layout.
-
-    Args:
-        n: Number of positions to generate
-        layout: Layout type ("spiral", "grid", "random")
-        scale: Scale factor for the layout
-
-    Returns:
-        Array of (x, y) positions
-    """
-    positions = np.zeros((n, 2))
-
-    if layout == "spiral":
-        # Fermat spiral for even distribution
-        golden_angle = np.pi * (3 - np.sqrt(5))
-        for i in range(n):
-            radius = scale * np.sqrt(i + 1)
-            theta = i * golden_angle
-            positions[i, 0] = radius * np.cos(theta)
-            positions[i, 1] = radius * np.sin(theta)
-
-    elif layout == "grid":
-        # Grid layout
-        cols = int(np.ceil(np.sqrt(n)))
-        for i in range(n):
-            row = i // cols
-            col = i % cols
-            positions[i, 0] = col * scale
-            positions[i, 1] = row * scale
-
-    elif layout == "random":
-        # Random layout with some structure
-        np.random.seed(42)
-        positions = np.random.randn(n, 2) * scale
-
-    return positions
-
 
 def calculate_bubble_sizes(
     balances: np.ndarray,
@@ -1092,8 +1030,6 @@ def calculate_bubble_sizes(
         normalized = np.ones_like(sizes) * 0.5
 
     return normalized * (max_size - min_size) + min_size
-
-
 def aggregate_by_wallet_type(
     df: pd.DataFrame,
     balance_col: str = "balance",
@@ -1130,8 +1066,6 @@ def aggregate_by_wallet_type(
         }
 
     return result
-
-
 def aggregate_by_tier(
     df: pd.DataFrame,
     percentage_col: str = "percentage"
@@ -1173,8 +1107,6 @@ def aggregate_by_tier(
         }
 
     return result
-
-
 def calculate_holder_diversity_score(
     df: pd.DataFrame,
     type_col: str = "wallet_type",
@@ -1234,39 +1166,6 @@ def calculate_holder_diversity_score(
         "overall_diversity_score": round(overall, 2),
         "eoa_dominance": round(eoa_dominance, 2)
     }
-
-
-def prepare_bubble_map_export_data(
-    df: pd.DataFrame,
-    type_aggregation: Dict,
-    tier_aggregation: Dict,
-    diversity_metrics: Dict,
-    token_symbol: str
-) -> Dict:
-    """
-    Prepare bubble map data for export (JSON/CSV).
-
-    Args:
-        df: DataFrame with holder data
-        type_aggregation: Aggregation by wallet type
-        tier_aggregation: Aggregation by tier
-        diversity_metrics: Diversity score metrics
-        token_symbol: Token symbol
-
-    Returns:
-        Dictionary with export-ready data
-    """
-    return {
-        "token_symbol": token_symbol,
-        "generated_at": datetime.utcnow().isoformat(),
-        "total_holders": len(df),
-        "wallet_type_distribution": type_aggregation,
-        "tier_distribution": tier_aggregation,
-        "diversity_metrics": diversity_metrics,
-        "holders": df.to_dict(orient="records") if not df.empty else []
-    }
-
-
 # ============================================================================
 # Token Health Score Utilities
 # ============================================================================
@@ -1325,8 +1224,6 @@ def calculate_health_score_trend(
         "max_score": round(df[score_col].max(), 2),
         "volatility": round(volatility, 2)
     }
-
-
 def interpret_health_trend(trend_metrics: Dict) -> Tuple[str, str]:
     """
     Provide human-readable interpretation of health score trend.
@@ -1356,8 +1253,6 @@ def interpret_health_trend(trend_metrics: Dict) -> Tuple[str, str]:
             return "Health score is stable but volatile", "caution"
         else:
             return "Token health remains stable", "neutral"
-
-
 def calculate_component_contributions(
     components: Dict[str, float],
     weights: Optional[Dict[str, float]] = None
@@ -1405,8 +1300,6 @@ def calculate_component_contributions(
             )
 
     return results
-
-
 def identify_weakest_components(
     components: Dict[str, float],
     threshold: float = 60.0
@@ -1479,8 +1372,6 @@ def identify_weakest_components(
     weak_components.sort(key=lambda x: x["score"])
 
     return weak_components
-
-
 def compare_health_scores(
     token_scores: Dict[str, Dict]
 ) -> pd.DataFrame:
@@ -1515,43 +1406,6 @@ def compare_health_scores(
     df = df.sort_values("Overall Score", ascending=False)
 
     return df
-
-
-def prepare_health_score_export_data(
-    health_score: Dict,
-    component_analysis: Dict,
-    trend_metrics: Optional[Dict],
-    token_symbol: str
-) -> Dict:
-    """
-    Prepare health score data for export (JSON/CSV).
-
-    Args:
-        health_score: Health score data dictionary
-        component_analysis: Component contribution analysis
-        trend_metrics: Optional trend metrics
-        token_symbol: Token symbol
-
-    Returns:
-        Dictionary with export-ready data
-    """
-    return {
-        "token_symbol": token_symbol,
-        "generated_at": datetime.utcnow().isoformat(),
-        "overall_score": health_score.get("overall_score", 0),
-        "health_grade": health_score.get("health_grade", "N/A"),
-        "risk_level": health_score.get("risk_level", "Unknown"),
-        "components": health_score.get("components", {}),
-        "component_analysis": component_analysis,
-        "risk_factors": health_score.get("risk_factors", []),
-        "positive_factors": health_score.get("positive_factors", []),
-        "trend_metrics": trend_metrics or {},
-        "holder_count": health_score.get("holder_count", 0),
-        "block_number": health_score.get("block_number", 0),
-        "timestamp": health_score.get("timestamp", 0)
-    }
-
-
 def get_health_score_summary(
     health_score: Dict
 ) -> str:
