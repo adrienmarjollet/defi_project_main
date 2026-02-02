@@ -16,6 +16,10 @@ import requests
 
 from config import THEGRAPH_API_KEY
 from common.misc import find_project_root_path, load_env_variables
+from common.conversions import wei_to_ether, token_units_to_decimal
+
+# Backward-compatible alias for raw_to_decimal
+raw_to_decimal = token_units_to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -288,17 +292,6 @@ class GraphClient:
 class GraphQueryError(Exception):
     """Raised when a Graph query fails."""
     pass
-
-
-# Utility functions for common conversions
-def wei_to_ether(wei_value: Union[str, int]) -> Decimal:
-    """Convert Wei to Ether."""
-    return Decimal(str(wei_value)) / Decimal("10") ** 18
-
-
-def raw_to_decimal(raw_value: Union[str, int], decimals: int) -> Decimal:
-    """Convert raw token amount to decimal representation."""
-    return Decimal(str(raw_value)) / Decimal("10") ** decimals
 
 
 if __name__ == "__main__":
