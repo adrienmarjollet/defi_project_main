@@ -17,14 +17,16 @@ from typing import List, Optional, Tuple
 
 import pandas as pd
 
+from .base_queries import (
+    BaseQueries,
+    BLOCKS_PER_DAY,
+    BLOCKS_PER_WEEK,
+    BLOCKS_PER_MONTH,
+    normalize_address,
+)
 from .graph_client import GraphClient
 
 logger = logging.getLogger(__name__)
-
-# Ethereum block intervals (approximate)
-BLOCKS_PER_DAY = 7200  # ~12 seconds per block
-BLOCKS_PER_WEEK = 50400
-BLOCKS_PER_MONTH = 216000
 
 
 @dataclass
@@ -111,7 +113,7 @@ class HolderCountQueries:
         result = self.client.query(
             endpoint=self.subgraph_url,
             query=query,
-            variables={"id": token_address.lower()}
+            variables={"id": normalize_address(token_address)}
         )
 
         token_data = result.get("token")
@@ -159,7 +161,7 @@ class HolderCountQueries:
                 endpoint=self.subgraph_url,
                 query=query,
                 variables={
-                    "id": token_address.lower(),
+                    "id": normalize_address(token_address),
                     "block": block_number
                 }
             )
@@ -297,7 +299,7 @@ class HolderCountQueries:
             transfers(
                 first: $first,
                 where: {{
-                    token: "{token_address.lower()}",
+                    token: "{normalize_address(token_address)}",
                     blockNumber_gte: {from_block},
                     blockNumber_lte: {to_block}
                 }},

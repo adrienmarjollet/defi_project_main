@@ -35,21 +35,28 @@ from defi_library.blocks_scraping.dev.thegraph.holder_count_queries import (
 )
 from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 
+# Import shared utilities
+from utils.streamlit_config import (
+    configure_page,
+    setup_sidebar_header,
+    get_subgraph_url_input,
+    is_demo_mode,
+    show_demo_mode_warning,
+    validate_token_address,
+    COMMON_TOKENS,
+    DEFAULT_TOKEN,
+)
+from utils.components import (
+    token_selector,
+    sidebar_analysis_summary,
+    section_divider,
+)
+
 # Load environment variables
 load_dotenv()
 
 # Page configuration
-st.set_page_config(
-    page_title="Holder Count Analytics",
-    page_icon="📈",
-    layout="wide"
-)
-
-# Import shared constants
-from utils.constants import DEFAULT_TOKEN, COMMON_TOKENS
-
-# Default values
-DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
+configure_page(page_title="Holder Count Analytics", page_icon="📈")
 
 # Interval options
 INTERVAL_OPTIONS = {
@@ -83,33 +90,13 @@ def get_latest_block():
 
 
 # Sidebar configuration
-st.sidebar.header("Configuration")
+setup_sidebar_header()
 
 # Subgraph URL input
-subgraph_url = st.sidebar.text_input(
-    "Subgraph URL",
-    value=os.getenv("ERC20_SUBGRAPH_URL", DEFAULT_SUBGRAPH_URL),
-    help="URL of your deployed ERC-20 tracker subgraph"
-)
+subgraph_url = get_subgraph_url_input()
 
-# Token selection
-st.sidebar.subheader("Token Selection")
-
-selected_token = st.sidebar.selectbox(
-    "Quick Select Token",
-    options=["Custom"] + list(COMMON_TOKENS.keys()),
-    help="Select a common token or enter custom address"
-)
-
-if selected_token == "Custom":
-    token_address = st.sidebar.text_input(
-        "Token Contract Address",
-        value=DEFAULT_TOKEN,
-        help="ERC-20 token contract address to analyze"
-    )
-else:
-    token_address = COMMON_TOKENS[selected_token]
-    st.sidebar.code(token_address, language=None)
+# Token selection using shared component
+token_address = token_selector()
 
 # Block range configuration
 st.sidebar.subheader("Block Range")
@@ -301,21 +288,11 @@ def main():
     """)
 
     # Validate inputs
-    if not token_address or not token_address.startswith("0x"):
-        st.error("Please enter a valid Ethereum address (starting with 0x)")
+    if not validate_token_address(token_address):
         st.stop()
 
-    if "YOUR_ID" in subgraph_url:
-        st.warning("""
-        **Subgraph URL not configured**
-
-        To use this feature, you need to deploy an ERC-20 tracker subgraph and provide its URL.
-
-        1. Deploy the subgraph from `defi_library/subgraphs/erc20-tracker/`
-        2. Set the URL in the sidebar or via `ERC20_SUBGRAPH_URL` environment variable
-
-        **Demo Mode**: Showing sample data for illustration purposes.
-        """)
+    if is_demo_mode(subgraph_url):
+        show_demo_mode_warning()
 
         # Show demo with sample data
         demo_data = pd.DataFrame({
@@ -447,12 +424,12 @@ def main():
         st.dataframe(df[display_cols], use_container_width=True)
 
     # Sidebar summary
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Analysis Summary")
-    st.sidebar.metric("Data Points", len(df))
-    st.sidebar.metric("Period (days)", lookback_days)
-    st.sidebar.metric("Start Holders", f"{metrics['start_holders']:,}")
-    st.sidebar.metric("Current Holders", f"{metrics['end_holders']:,}")
+    sidebar_analysis_summary({
+        "Data Points": len(df),
+        "Period (days)": lookback_days,
+        "Start Holders": f"{metrics['start_holders']:,}",
+        "Current Holders": f"{metrics['end_holders']:,}",
+    })
 
 
 if __name__ == "__main__":

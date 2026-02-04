@@ -43,26 +43,19 @@ class EtherScanQueries:
         Initialize EtherScan client.
 
         Args:
-            api_key: Etherscan API key. If None, loads from settings.
-            rpc_url: Ethereum RPC URL. If None, loads from settings.
+            api_key: Etherscan API key. If None, loads from environment.
+            rpc_url: Ethereum RPC URL. If None, loads from environment.
         """
-        # Import here to avoid circular imports and allow standalone usage
+        # Load settings from environment if not provided
         if api_key is None or rpc_url is None:
-            try:
-                from settings import get_settings
-                settings = get_settings()
-                api_key = api_key or settings.etherscan_api_key
-                rpc_url = rpc_url or settings.eth_rpc_url
-            except ImportError:
-                # Fallback to legacy loading
-                from common.misc import find_project_root_path, load_env_variables
-                from config import ETHERSCAN_API_TOKEN, ETH_RPC_URL
+            from common.misc import find_project_root_path, load_env_variables
+            from config import ETHERSCAN_API_TOKEN, ETH_RPC_URL
 
-                root_path = find_project_root_path()
-                if api_key is None:
-                    api_key = load_env_variables(root_path, [ETHERSCAN_API_TOKEN])[0]
-                if rpc_url is None:
-                    rpc_url = load_env_variables(root_path, [ETH_RPC_URL])[0]
+            root_path = find_project_root_path()
+            if api_key is None:
+                api_key = load_env_variables(root_path, [ETHERSCAN_API_TOKEN])[0]
+            if rpc_url is None:
+                rpc_url = load_env_variables(root_path, [ETH_RPC_URL])[0]
 
         self._api_key = api_key
         self._rpc_url = rpc_url

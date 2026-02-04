@@ -20,30 +20,34 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
+from .base_queries import (
+    BaseQueries,
+    BLOCKS_PER_DAY,
+    BLOCKS_PER_HOUR,
+    normalize_address,
+)
 from .graph_client import GraphClient
 from .queries import ERC20Queries
 from .holder_distribution_queries import HolderDistributionQueries
 from .whale_tracking_queries import WhaleTrackingQueries
 
+# Import severity and activity type constants from consolidated constants
+from defi_library.constants import (
+    SEVERITY_CRITICAL,
+    SEVERITY_HIGH,
+    SEVERITY_MEDIUM,
+    SEVERITY_LOW,
+    ACTIVITY_WASH_TRADING,
+    ACTIVITY_CONCENTRATION_SPIKE,
+    ACTIVITY_COORDINATED_WALLETS,
+    ACTIVITY_DUMP_PATTERN,
+    ACTIVITY_SYBIL_CLUSTER,
+    ACTIVITY_RAPID_ACCUMULATION,
+    get_risk_color,
+    get_severity_color,
+)
+
 logger = logging.getLogger(__name__)
-
-# Constants
-BLOCKS_PER_DAY = 7200  # ~12 second blocks
-BLOCKS_PER_HOUR = 300
-
-# Severity levels
-SEVERITY_CRITICAL = "critical"
-SEVERITY_HIGH = "high"
-SEVERITY_MEDIUM = "medium"
-SEVERITY_LOW = "low"
-
-# Activity types
-ACTIVITY_WASH_TRADING = "wash_trading"
-ACTIVITY_CONCENTRATION_SPIKE = "concentration_spike"
-ACTIVITY_COORDINATED_WALLETS = "coordinated_wallets"
-ACTIVITY_DUMP_PATTERN = "dump_pattern"
-ACTIVITY_SYBIL_CLUSTER = "sybil_cluster"
-ACTIVITY_RAPID_ACCUMULATION = "rapid_accumulation"
 
 
 @dataclass
@@ -856,42 +860,7 @@ def interpret_risk_level(risk_level: str) -> Tuple[str, str]:
     return interpretations.get(risk_level, ("Unknown risk level", "unknown"))
 
 
-def get_risk_color(risk_level: str) -> str:
-    """
-    Get color code for risk level visualization.
-
-    Args:
-        risk_level: Risk level string
-
-    Returns:
-        Hex color code
-    """
-    colors = {
-        "Critical": "#dc3545",  # Red
-        "High": "#fd7e14",  # Orange
-        "Medium": "#ffc107",  # Yellow
-        "Low": "#28a745",  # Green
-    }
-    return colors.get(risk_level, "#6c757d")
-
-
-def get_severity_color(severity: str) -> str:
-    """
-    Get color code for severity level visualization.
-
-    Args:
-        severity: Severity string
-
-    Returns:
-        Hex color code
-    """
-    colors = {
-        "critical": "#dc3545",
-        "high": "#fd7e14",
-        "medium": "#ffc107",
-        "low": "#17a2b8",
-    }
-    return colors.get(severity, "#6c757d")
+# get_risk_color and get_severity_color are imported from defi_library.constants
 
 
 def get_activity_icon(activity_type: str) -> str:

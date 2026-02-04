@@ -34,31 +34,39 @@ from defi_library.blocks_scraping.dev.thegraph.whale_tracking_queries import (
 )
 from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 
-# Import utility functions
-from utils.data_analysis import (
+# Import utility functions from modular analysis package
+from utils.analysis import (
     calculate_whale_concentration_change,
     detect_whale_accumulation_pattern,
     calculate_whale_stability_score,
     prepare_stacked_area_data,
     calculate_whale_movement_alerts,
-    interpret_whale_pattern,
+    interpret_pattern,
+)
+
+# Import shared Streamlit utilities
+from utils.streamlit_config import (
+    configure_page,
+    setup_sidebar_header,
+    get_subgraph_url_input,
+    is_demo_mode,
+    show_demo_mode_warning,
+    validate_token_address,
+    COMMON_TOKENS,
+    DEFAULT_TOKEN,
+)
+from utils.components import (
+    token_selector,
+    sidebar_analysis_summary,
+    section_divider,
+    interpretation_box,
 )
 
 # Load environment variables
 load_dotenv()
 
 # Page configuration
-st.set_page_config(
-    page_title="Whale Tracking Dashboard",
-    page_icon="🐋",
-    layout="wide"
-)
-
-# Import shared constants
-from utils.constants import DEFAULT_TOKEN, COMMON_TOKENS
-
-# Default values
-DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
+configure_page(page_title="Whale Tracking Dashboard", page_icon="🐋")
 
 
 def create_stacked_area_chart(pivot_df: pd.DataFrame, token_symbol: str) -> go.Figure:
@@ -458,33 +466,13 @@ def main():
     """)
 
     # Sidebar configuration
-    st.sidebar.header("Configuration")
+    setup_sidebar_header()
 
     # Subgraph URL input
-    subgraph_url = st.sidebar.text_input(
-        "Subgraph URL",
-        value=os.getenv("ERC20_SUBGRAPH_URL", DEFAULT_SUBGRAPH_URL),
-        help="URL of your deployed ERC-20 tracker subgraph"
-    )
+    subgraph_url = get_subgraph_url_input()
 
-    # Token selection
-    st.sidebar.subheader("Token Selection")
-
-    selected_token = st.sidebar.selectbox(
-        "Quick Select Token",
-        options=["Custom"] + list(COMMON_TOKENS.keys()),
-        help="Select a common token or enter custom address"
-    )
-
-    if selected_token == "Custom":
-        token_address = st.sidebar.text_input(
-            "Token Contract Address",
-            value=DEFAULT_TOKEN,
-            help="ERC-20 token contract address to track"
-        )
-    else:
-        token_address = COMMON_TOKENS[selected_token]
-        st.sidebar.code(token_address, language=None)
+    # Token selection using shared component
+    token_address = token_selector()
 
     # Tracking settings
     st.sidebar.subheader("Tracking Settings")
@@ -517,21 +505,11 @@ def main():
     )
 
     # Validate inputs
-    if not token_address or not token_address.startswith("0x"):
-        st.error("Please enter a valid Ethereum address (starting with 0x)")
+    if not validate_token_address(token_address):
         st.stop()
 
-    if "YOUR_ID" in subgraph_url:
-        st.warning("""
-        **Subgraph URL not configured**
-
-        To use this feature, you need to deploy an ERC-20 tracker subgraph and provide its URL.
-
-        1. Deploy the subgraph from `defi_library/subgraphs/erc20-tracker/`
-        2. Set the URL in the sidebar or via `ERC20_SUBGRAPH_URL` environment variable
-
-        **Demo Mode**: Showing sample data for illustration purposes.
-        """)
+    if is_demo_mode(subgraph_url):
+        show_demo_mode_warning()
 
         # Show demo with sample data
         history_df, whales = generate_demo_data()
@@ -553,7 +531,7 @@ def main():
         col1, col2 = st.columns(2)
 
         with col1:
-            interpretation, sentiment = interpret_whale_pattern(pattern_analysis["pattern"])
+            interpretation, sentiment = interpret_pattern(pattern_analysis["pattern"], "whale_pattern")
             if sentiment == "bullish":
                 st.success(f"**Pattern Analysis:** {interpretation}")
             elif sentiment == "mild_bullish":
@@ -695,7 +673,7 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        interpretation, sentiment = interpret_whale_pattern(pattern_analysis["pattern"])
+        interpretation, sentiment = interpret_pattern(pattern_analysis["pattern"], "whale_pattern")
         if sentiment == "bullish":
             st.success(f"**Pattern Analysis:** {interpretation}")
         elif sentiment == "mild_bullish":
@@ -797,12 +775,12 @@ def main():
             )
 
     # Sidebar summary
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Summary")
-    st.sidebar.metric("Tracked Whales", len(whales))
-    st.sidebar.metric("Total Concentration", f"{concentration_metrics.get('end_concentration', 0):.1f}%")
-    st.sidebar.metric("Pattern", pattern_analysis.get("pattern", "unknown").replace("_", " ").title())
-    st.sidebar.metric("Movement Alerts", len(alerts))
+    sidebar_analysis_summary({
+        "Tracked Whales": len(whales),
+        "Total Concentration": f"{concentration_metrics.get('end_concentration', 0):.1f}%",
+        "Pattern": pattern_analysis.get("pattern", "unknown").replace("_", " ").title(),
+        "Movement Alerts": len(alerts),
+    })
 
 
 if __name__ == "__main__":

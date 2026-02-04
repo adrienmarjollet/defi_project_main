@@ -5,13 +5,19 @@ from web3 import Web3
 import streamlit as st
 import plotly.graph_objs as go
 
-# Import shared constants
-from utils.constants import DEFAULT_TOKEN, COMMON_TOKENS
+# Import shared utilities
+from utils.streamlit_config import (
+    configure_page,
+    setup_sidebar_header,
+    COMMON_TOKENS,
+    DEFAULT_TOKEN,
+)
+from utils.components import token_selector
 
 # Load environment variables
 load_dotenv()
 
-st.set_page_config(page_title="Holders statistics", page_icon="📈")
+configure_page(page_title="Holders statistics", page_icon="📈", layout="centered")
 
 # Environment variable name
 ETH_RPC_VAR = "ETH_RPC_URL"
@@ -21,7 +27,7 @@ DEFAULT_WALLET = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852"    # WETH-USDT poo
 DEFAULT_LOOKBACK = 100
 
 # Sidebar configuration
-st.sidebar.header("Configuration")
+setup_sidebar_header()
 
 CONTRACT_ADDRESS = st.sidebar.text_input(
     "Token Contract Address",
@@ -44,6 +50,7 @@ LOOKBACK_BLOCKS = st.sidebar.slider(
     help="Number of blocks to look back (100 blocks ~ 20 minutes)"
 )
 
+# Quick token selection using shared component logic
 selected_token = st.sidebar.selectbox(
     "Quick Select Token",
     options=["Custom"] + list(COMMON_TOKENS.keys()),

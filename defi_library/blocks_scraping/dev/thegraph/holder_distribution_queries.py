@@ -18,6 +18,12 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from .base_queries import (
+    BaseQueries,
+    WHALE_THRESHOLD_PCT,
+    DOLPHIN_THRESHOLD_PCT,
+    classify_holder_tier as _classify_holder_tier,
+)
 from .graph_client import GraphClient, raw_to_decimal
 from .queries import ERC20Queries
 
@@ -463,6 +469,7 @@ def calculate_gini_from_balances(balances: pd.Series) -> float:
     return queries.calculate_gini_coefficient(balances.values)
 
 
+# Alias for backward compatibility - use classify_holder_tier from base_queries
 def classify_holder_tier(percentage: float) -> str:
     """
     Classify a single holder into a tier based on percentage.
@@ -472,12 +479,10 @@ def classify_holder_tier(percentage: float) -> str:
 
     Returns:
         Tier name: "whale", "dolphin", or "fish"
+
+    Note:
+        This is an alias for classify_holder_tier from base_queries module.
     """
-    if percentage >= 1.0:
-        return "whale"
-    elif percentage >= 0.1:
-        return "dolphin"
-    else:
-        return "fish"
+    return _classify_holder_tier(percentage)
 
 
