@@ -25,8 +25,6 @@ sys.path.insert(0, project_root)
 
 from defi_library.blocks_scraping.dev.thegraph.holder_distribution_queries import (
     HolderDistributionQueries,
-    interpret_gini_coefficient,
-    interpret_hhi,
 )
 from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 
@@ -36,8 +34,8 @@ from utils.data_analysis import (
     build_lorenz_curve,
     classify_holder_tiers,
     calculate_concentration_metrics,
-    interpret_gini_coefficient as interpret_gini_util,
-    interpret_hhi as interpret_hhi_util,
+    interpret_gini_coefficient,
+    interpret_hhi,
     create_distribution_histogram_data,
 )
 
@@ -51,19 +49,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Default values
-DEFAULT_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
-DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
+# Import shared constants
+from utils.constants import DEFAULT_TOKEN, COMMON_TOKENS
 
-# Common tokens for quick selection
-COMMON_TOKENS = {
-    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "SHIB": "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
-    "UNI": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-}
+# Default values
+DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
 
 
 def create_lorenz_curve_chart(population_pct: np.ndarray, wealth_pct: np.ndarray, gini: float) -> go.Figure:
@@ -403,7 +393,7 @@ def main():
         col1, col2 = st.columns(2)
 
         with col1:
-            gini_interp, gini_level = interpret_gini_util(metrics["gini"])
+            gini_interp, gini_level = interpret_gini_coefficient(metrics["gini"])
             if gini_level == "good":
                 st.success(f"**Gini Interpretation:** {gini_interp}")
             elif gini_level == "moderate":
@@ -414,7 +404,7 @@ def main():
                 st.error(f"**Gini Interpretation:** {gini_interp}")
 
         with col2:
-            hhi_interp, hhi_level = interpret_hhi_util(metrics["hhi"])
+            hhi_interp, hhi_level = interpret_hhi(metrics["hhi"])
             if hhi_level == "good":
                 st.success(f"**HHI Interpretation:** {hhi_interp}")
             elif hhi_level == "moderate":
@@ -505,7 +495,7 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        gini_interp, gini_level = interpret_gini_util(metrics["gini"])
+        gini_interp, gini_level = interpret_gini_coefficient(metrics["gini"])
         if gini_level == "good":
             st.success(f"**Gini Interpretation:** {gini_interp}")
         elif gini_level == "moderate":
@@ -516,7 +506,7 @@ def main():
             st.error(f"**Gini Interpretation:** {gini_interp}")
 
     with col2:
-        hhi_interp, hhi_level = interpret_hhi_util(metrics["hhi"])
+        hhi_interp, hhi_level = interpret_hhi(metrics["hhi"])
         if hhi_level == "good":
             st.success(f"**HHI Interpretation:** {hhi_interp}")
         elif hhi_level == "moderate":

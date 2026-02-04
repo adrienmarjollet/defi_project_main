@@ -50,19 +50,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Default values
-DEFAULT_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
-DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
+# Import shared constants
+from utils.constants import DEFAULT_TOKEN, COMMON_TOKENS
 
-# Common tokens for quick selection
-COMMON_TOKENS = {
-    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "SHIB": "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
-    "UNI": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-}
+# Default values
+DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
 
 
 def create_gauge_chart(score: float, title: str = "Health Score") -> go.Figure:

@@ -5,6 +5,9 @@ from web3 import Web3
 import streamlit as st
 import plotly.graph_objs as go
 
+# Import shared constants
+from utils.constants import DEFAULT_TOKEN, COMMON_TOKENS
+
 # Load environment variables
 load_dotenv()
 
@@ -14,7 +17,6 @@ st.set_page_config(page_title="Holders statistics", page_icon="📈")
 ETH_RPC_VAR = "ETH_RPC_URL"
 
 # Default values (can be overridden via UI)
-DEFAULT_CONTRACT = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
 DEFAULT_WALLET = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852"    # WETH-USDT pool Uniswap V2
 DEFAULT_LOOKBACK = 100
 
@@ -23,7 +25,7 @@ st.sidebar.header("Configuration")
 
 CONTRACT_ADDRESS = st.sidebar.text_input(
     "Token Contract Address",
-    value=DEFAULT_CONTRACT,
+    value=DEFAULT_TOKEN,
     help="ERC-20 token contract address to analyze"
 )
 
@@ -41,14 +43,6 @@ LOOKBACK_BLOCKS = st.sidebar.slider(
     step=10,
     help="Number of blocks to look back (100 blocks ~ 20 minutes)"
 )
-
-# Common tokens for quick selection
-COMMON_TOKENS = {
-    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-}
 
 selected_token = st.sidebar.selectbox(
     "Quick Select Token",

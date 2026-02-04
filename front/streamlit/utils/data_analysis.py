@@ -219,30 +219,6 @@ def detect_holder_anomalies(
         df["anomaly_type"] = "normal"
 
     return df
-def classify_growth_pattern(metrics: Dict) -> str:
-    """
-    Classify the growth pattern based on metrics.
-
-    Args:
-        metrics: Dictionary of growth metrics from calculate_holder_growth_metrics
-
-    Returns:
-        Classification string: "organic", "accelerating", "declining", "volatile", "stable"
-    """
-    growth_rate = metrics.get("avg_daily_growth_rate", 0)
-    volatility = metrics.get("volatility", 0)
-    total_growth = metrics.get("total_growth", 0)
-
-    if volatility > 10:
-        return "volatile"
-    elif total_growth < 0:
-        return "declining"
-    elif growth_rate > 5:
-        return "accelerating"
-    elif growth_rate > 0 and growth_rate <= 5 and volatility < 5:
-        return "organic"
-    else:
-        return "stable"
 # ============================================================================
 # Token Comparison Utilities
 # ============================================================================
@@ -1066,6 +1042,23 @@ def aggregate_by_wallet_type(
         }
 
     return result
+def classify_holder_tier(percentage: float) -> str:
+    """
+    Classify a holder into a tier based on percentage of total supply.
+
+    Args:
+        percentage: Percentage of total supply held
+
+    Returns:
+        Tier name: "whale", "dolphin", or "fish"
+    """
+    if percentage >= 1.0:
+        return "whale"
+    elif percentage >= 0.1:
+        return "dolphin"
+    return "fish"
+
+
 def aggregate_by_tier(
     df: pd.DataFrame,
     percentage_col: str = "percentage"
@@ -1083,15 +1076,8 @@ def aggregate_by_tier(
     if df.empty or percentage_col not in df.columns:
         return {}
 
-    def get_tier(pct):
-        if pct >= 1.0:
-            return "whale"
-        elif pct >= 0.1:
-            return "dolphin"
-        return "fish"
-
     df_copy = df.copy()
-    df_copy["tier"] = df_copy[percentage_col].apply(get_tier)
+    df_copy["tier"] = df_copy[percentage_col].apply(classify_holder_tier)
 
     result = {}
     for tier in ["whale", "dolphin", "fish"]:
@@ -1138,15 +1124,8 @@ def calculate_holder_diversity_score(
     type_diversity = type_entropy / max_type_entropy if max_type_entropy > 0 else 0
 
     # Tier diversity
-    def get_tier(pct):
-        if pct >= 1.0:
-            return "whale"
-        elif pct >= 0.1:
-            return "dolphin"
-        return "fish"
-
     df_copy = df.copy()
-    df_copy["tier"] = df_copy[percentage_col].apply(get_tier)
+    df_copy["tier"] = df_copy[percentage_col].apply(classify_holder_tier)
 
     tier_counts = df_copy["tier"].value_counts(normalize=True)
     tier_entropy = -np.sum(tier_counts * np.log2(tier_counts + 1e-10))
@@ -1497,19 +1476,6 @@ def interpret_suspicious_risk_level(risk_level: str) -> Tuple[str, str]:
     )
 
 
-def interpret_activity_type(activity_type: str) -> Tuple[str, str]:
-    """
-    Provide human-readable interpretation of activity type.
-
-    Args:
-        activity_type: Activity type string
-
-    Returns:
-        Tuple of (display name, description)
-    """
-    return SUSPICIOUS_ACTIVITY_CONFIG["activity_type"].get(
-        activity_type, (activity_type, "Unknown activity type")
-    )
 
 
 def calculate_suspicious_activity_metrics(
