@@ -12,7 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from .graph_client import GraphClient, raw_to_decimal
+from .graph_client import GraphClient
+from common.conversions import token_units_to_decimal as raw_to_decimal
 
 logger = logging.getLogger(__name__)
 

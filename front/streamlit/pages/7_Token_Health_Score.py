@@ -33,36 +33,35 @@ from defi_library.blocks_scraping.dev.thegraph.token_health_score_queries import
 )
 from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 
-# Import utility functions
-from utils.data_analysis import (
+# Import utility functions from modular analysis package
+from utils.analysis import (
     calculate_health_score_trend,
-    prepare_health_score_export_data,
     interpret_health_trend,
+)
+
+# Import shared Streamlit configuration
+from utils.streamlit_config import (
+    configure_page,
+    setup_sidebar_header,
+    get_subgraph_url_input,
+    is_demo_mode,
+    show_demo_mode_warning,
+    validate_token_address,
+    COMMON_TOKENS,
+    DEFAULT_TOKEN,
+)
+from utils.components import (
+    token_selector,
+    sidebar_analysis_summary,
+    risk_level_indicator,
+    grade_indicator,
 )
 
 # Load environment variables
 load_dotenv()
 
 # Page configuration
-st.set_page_config(
-    page_title="Token Health Score",
-    page_icon="💊",
-    layout="wide"
-)
-
-# Default values
-DEFAULT_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
-DEFAULT_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/YOUR_ID/erc20-tracker/version/latest"
-
-# Common tokens for quick selection
-COMMON_TOKENS = {
-    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    "PEPE": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "SHIB": "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE",
-    "UNI": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-}
+configure_page(page_title="Token Health Score", page_icon="...")
 
 
 def create_gauge_chart(score: float, title: str = "Health Score") -> go.Figure:
@@ -339,33 +338,13 @@ def main():
     """)
 
     # Sidebar configuration
-    st.sidebar.header("Configuration")
+    setup_sidebar_header()
 
     # Subgraph URL input
-    subgraph_url = st.sidebar.text_input(
-        "Subgraph URL",
-        value=os.getenv("ERC20_SUBGRAPH_URL", DEFAULT_SUBGRAPH_URL),
-        help="URL of your deployed ERC-20 tracker subgraph"
-    )
+    subgraph_url = get_subgraph_url_input()
 
-    # Token selection
-    st.sidebar.subheader("Token Selection")
-
-    selected_token = st.sidebar.selectbox(
-        "Quick Select Token",
-        options=["Custom"] + list(COMMON_TOKENS.keys()),
-        help="Select a common token or enter custom address"
-    )
-
-    if selected_token == "Custom":
-        token_address = st.sidebar.text_input(
-            "Token Contract Address",
-            value=DEFAULT_TOKEN,
-            help="ERC-20 token contract address to analyze"
-        )
-    else:
-        token_address = COMMON_TOKENS[selected_token]
-        st.sidebar.code(token_address, language=None)
+    # Token selection using shared component
+    token_address = token_selector()
 
     # Analysis settings
     st.sidebar.subheader("Analysis Settings")
@@ -380,21 +359,11 @@ def main():
     )
 
     # Validate inputs
-    if not token_address or not token_address.startswith("0x"):
-        st.error("Please enter a valid Ethereum address (starting with 0x)")
+    if not validate_token_address(token_address):
         st.stop()
 
-    if "YOUR_ID" in subgraph_url:
-        st.warning("""
-        **Subgraph URL not configured**
-
-        To use this feature, you need to deploy an ERC-20 tracker subgraph and provide its URL.
-
-        1. Deploy the subgraph from `defi_library/subgraphs/erc20-tracker/`
-        2. Set the URL in the sidebar or via `ERC20_SUBGRAPH_URL` environment variable
-
-        **Demo Mode**: Showing sample data for illustration purposes.
-        """)
+    if is_demo_mode(subgraph_url):
+        show_demo_mode_warning()
 
         # Show demo with sample data
         demo_data = generate_demo_health_score()
@@ -646,12 +615,12 @@ def main():
         """)
 
     # Sidebar summary
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Health Summary")
-    st.sidebar.metric("Overall Score", f"{health.overall_score:.1f}/100")
-    st.sidebar.metric("Grade", health.health_grade)
-    st.sidebar.metric("Risk Level", health.risk_level)
-    st.sidebar.metric("Holders", f"{health.holder_count:,}")
+    sidebar_analysis_summary({
+        "Overall Score": f"{health.overall_score:.1f}/100",
+        "Grade": health.health_grade,
+        "Risk Level": health.risk_level,
+        "Holders": f"{health.holder_count:,}",
+    }, title="Health Summary")
 
 
 if __name__ == "__main__":

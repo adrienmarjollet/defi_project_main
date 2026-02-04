@@ -22,15 +22,18 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from .graph_client import GraphClient, raw_to_decimal
+from .base_queries import (
+    BaseQueries,
+    BLOCKS_PER_HOUR,
+    BLOCKS_PER_DAY,
+    BLOCKS_PER_WEEK,
+    format_address,
+)
+from .graph_client import GraphClient
+from common.conversions import token_units_to_decimal as raw_to_decimal
 from .queries import ERC20Queries
 
 logger = logging.getLogger(__name__)
-
-# Block interval constants
-BLOCKS_PER_HOUR = 300  # ~12 seconds per block
-BLOCKS_PER_DAY = 7200
-BLOCKS_PER_WEEK = 50400
 
 
 @dataclass
@@ -590,6 +593,7 @@ class WhaleTrackingQueries:
             return "mixed"
 
 
+# Alias for backward compatibility - use format_address from base_queries
 def format_whale_address(address: str, length: int = 8) -> str:
     """
     Format whale address for display (shortened form).
@@ -600,10 +604,11 @@ def format_whale_address(address: str, length: int = 8) -> str:
 
     Returns:
         Shortened address (e.g., "0x1234...5678")
+
+    Note:
+        This is an alias for format_address from base_queries module.
     """
-    if len(address) <= length * 2:
-        return address
-    return f"{address[:length]}...{address[-length:]}"
+    return format_address(address, length)
 
 
 def interpret_whale_activity(movements: List[WhaleMovement]) -> str:
