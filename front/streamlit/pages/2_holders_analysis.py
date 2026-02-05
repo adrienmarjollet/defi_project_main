@@ -10,6 +10,7 @@ from utils.streamlit_config import (
     configure_page,
     setup_sidebar_header,
     COMMON_TOKENS,
+    DEFAULT_TOKEN,
 )
 from utils.components import token_selector
 
@@ -22,7 +23,6 @@ configure_page(page_title="Holders statistics", page_icon="📈", layout="center
 ETH_RPC_VAR = "ETH_RPC_URL"
 
 # Default values (can be overridden via UI)
-DEFAULT_CONTRACT = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
 DEFAULT_WALLET = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852"    # WETH-USDT pool Uniswap V2
 DEFAULT_LOOKBACK = 100
 
@@ -31,7 +31,7 @@ setup_sidebar_header()
 
 CONTRACT_ADDRESS = st.sidebar.text_input(
     "Token Contract Address",
-    value=DEFAULT_CONTRACT,
+    value=DEFAULT_TOKEN,
     help="ERC-20 token contract address to analyze"
 )
 

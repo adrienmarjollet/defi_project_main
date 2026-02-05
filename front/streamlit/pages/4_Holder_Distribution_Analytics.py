@@ -25,8 +25,6 @@ sys.path.insert(0, project_root)
 
 from defi_library.blocks_scraping.dev.thegraph.holder_distribution_queries import (
     HolderDistributionQueries,
-    interpret_gini_coefficient,
-    interpret_hhi,
 )
 from defi_library.blocks_scraping.dev.thegraph.graph_client import GraphClient
 
@@ -371,7 +369,11 @@ def main():
         col1, col2 = st.columns(2)
 
         with col1:
+<<<<<<< HEAD
+            gini_interp, gini_level = interpret_gini_coefficient(metrics["gini"])
+=======
             gini_interp, gini_level = interpret_metric(metrics["gini"], "gini")
+>>>>>>> origin/rd/master
             if gini_level == "good":
                 st.success(f"**Gini Interpretation:** {gini_interp}")
             elif gini_level == "moderate":
@@ -382,7 +384,11 @@ def main():
                 st.error(f"**Gini Interpretation:** {gini_interp}")
 
         with col2:
+<<<<<<< HEAD
+            hhi_interp, hhi_level = interpret_hhi(metrics["hhi"])
+=======
             hhi_interp, hhi_level = interpret_metric(metrics["hhi"], "hhi")
+>>>>>>> origin/rd/master
             if hhi_level == "good":
                 st.success(f"**HHI Interpretation:** {hhi_interp}")
             elif hhi_level == "moderate":
@@ -473,7 +479,11 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
+<<<<<<< HEAD
+        gini_interp, gini_level = interpret_gini_coefficient(metrics["gini"])
+=======
         gini_interp, gini_level = interpret_metric(metrics["gini"], "gini")
+>>>>>>> origin/rd/master
         if gini_level == "good":
             st.success(f"**Gini Interpretation:** {gini_interp}")
         elif gini_level == "moderate":
@@ -484,7 +494,11 @@ def main():
             st.error(f"**Gini Interpretation:** {gini_interp}")
 
     with col2:
+<<<<<<< HEAD
+        hhi_interp, hhi_level = interpret_hhi(metrics["hhi"])
+=======
         hhi_interp, hhi_level = interpret_metric(metrics["hhi"], "hhi")
+>>>>>>> origin/rd/master
         if hhi_level == "good":
             st.success(f"**HHI Interpretation:** {hhi_interp}")
         elif hhi_level == "moderate":
