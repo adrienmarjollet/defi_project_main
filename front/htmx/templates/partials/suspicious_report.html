@@ -1,0 +1,31 @@
+<!-- Suspicious Report Partial (returned via HTMX) -->
+{% set r = report %}
+
+<div class="grid-3 mb-3">
+    <div class="card metric">
+        <div class="metric-value"
+             style="color: {% if r.overall_risk_score >= 70 %}var(--red){% elif r.overall_risk_score >= 50 %}var(--orange){% elif r.overall_risk_score >= 30 %}var(--yellow){% else %}var(--green){% endif %};">
+            {{ r.overall_risk_score|round(1) }}
+        </div>
+        <div class="metric-label">Risk Score</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ r.risk_level }}</div>
+        <div class="metric-label">Risk Level</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ r.total_flags }}</div>
+        <div class="metric-label">Total Flags</div>
+    </div>
+</div>
+
+{% for activity in r.activities %}
+<div class="sus-card sus-card-{{ activity.severity }}">
+    <div class="sus-header">
+        <span class="sus-type">{{ activity.type }}</span>
+        <span class="badge badge-{{ activity.severity }}">{{ activity.severity }}</span>
+    </div>
+    <div class="sus-desc">{{ activity.description }}</div>
+    <div class="sus-meta">Risk: {{ activity.risk_score }} points</div>
+</div>
+{% endfor %}

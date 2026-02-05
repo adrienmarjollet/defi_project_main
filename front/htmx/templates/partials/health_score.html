@@ -1,0 +1,39 @@
+<!-- Health Score Partial (returned via HTMX) -->
+{% set h = health %}
+
+<div class="grid-3 mb-3">
+    <div class="card metric">
+        <div class="gauge-wrap">
+            <div class="gauge-value"
+                 style="color: {% if h.overall_score >= 80 %}var(--green){% elif h.overall_score >= 60 %}#5cb85c{% elif h.overall_score >= 40 %}var(--yellow){% else %}var(--red){% endif %};">
+                {{ h.overall_score }}
+            </div>
+            <div class="gauge-label">/ 100</div>
+        </div>
+        <div class="metric-label">Health Score</div>
+    </div>
+    <div class="card metric">
+        <div class="grade-display grade-{{ h.grade }}">{{ h.grade }}</div>
+        <div class="metric-label mt-1">Grade</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ h.risk_level }}</div>
+        <div class="metric-label">Risk Level</div>
+    </div>
+</div>
+
+<div class="card">
+    {% for key, comp in h.components.items() %}
+    <div class="progress-row">
+        <span class="progress-label">{{ key|replace('_', ' ')|title }}</span>
+        <div class="progress-bar">
+            <div class="progress-fill"
+                 style="width: {{ comp.score }}%;
+                        background: {% if comp.score >= 70 %}var(--green){% elif comp.score >= 50 %}var(--yellow){% else %}var(--red){% endif %};">
+                {{ comp.score|round(1) }}
+            </div>
+        </div>
+        <span class="progress-weight">{{ comp.weight }}%</span>
+    </div>
+    {% endfor %}
+</div>

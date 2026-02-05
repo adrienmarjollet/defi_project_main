@@ -1,0 +1,54 @@
+<!-- Whale Table Partial (returned via HTMX) -->
+{% set wd = whale_data %}
+
+<div class="grid-4 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ wd.total_concentration }}%</div>
+        <div class="metric-label">Whale Concentration</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-green">{{ wd.accumulating }}</div>
+        <div class="metric-label">Accumulating</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-red">{{ wd.distributing }}</div>
+        <div class="metric-label">Distributing</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ wd.stability_score }}/100</div>
+        <div class="metric-label">Stability</div>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Address</th>
+                <th class="text-right">Balance</th>
+                <th class="text-right">% Supply</th>
+                <th class="text-right">Change</th>
+                <th>Trend</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for whale in wd.whales %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td class="mono">{{ whale.address }}</td>
+                <td class="text-right">{{ whale.balance }}</td>
+                <td class="text-right fw-bold">{{ whale.pct }}%</td>
+                <td class="text-right {% if whale.change.startswith('+') %}text-green{% elif whale.change.startswith('-') %}text-red{% endif %}">
+                    {{ whale.change }}
+                </td>
+                <td>
+                    {% if whale.trend == 'up' %}<span class="text-green">&#9650;</span>
+                    {% elif whale.trend == 'down' %}<span class="text-red">&#9660;</span>
+                    {% else %}<span class="text-muted">&#9644;</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,34 @@
+<!-- Token Info Partial (returned via HTMX) -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+    <div class="token-details">
+        <div>
+            <span class="token-detail-label">Address: </span>
+            <code>{{ token.address[:10] }}...{{ token.address[-6:] }}</code>
+        </div>
+    </div>
+</div>
+
+<div class="grid-4">
+    <div class="card metric">
+        <div class="metric-value">{{ token.symbol }}</div>
+        <div class="metric-label">Symbol</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ token.decimals }}</div>
+        <div class="metric-label">Decimals</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ token.total_supply }}</div>
+        <div class="metric-label">Total Supply</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ "{:,}".format(token.holder_count) }}</div>
+        <div class="metric-label">Holders</div>
+    </div>
+</div>
