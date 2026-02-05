@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}{{ token.symbol }} - Holder Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Holder Analysis</h1>
+    <p class="page-description">Distribution breakdown, concentration metrics, and top holder details.</p>
+</div>
+
+<!-- Token Header -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+</div>
+
+<!-- Distribution Metrics -->
+<div class="grid-5 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ distribution.top10_pct }}%</div>
+        <div class="metric-label">Top 10 Hold</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-yellow">{{ distribution.exchange_pct }}%</div>
+        <div class="metric-label">Exchanges</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-red">{{ distribution.whale_pct }}%</div>
+        <div class="metric-label">Whales</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-blue">{{ distribution.contract_pct }}%</div>
+        <div class="metric-label">Contracts</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-green">{{ distribution.eoa_pct }}%</div>
+        <div class="metric-label">EOA Users</div>
+    </div>
+</div>
+
+<!-- Distribution Bar -->
+<div class="card mb-3">
+    <div class="card-header">
+        <span class="card-title">Supply Distribution</span>
+    </div>
+    <div style="display: flex; height: 32px; border-radius: 4px; overflow: hidden; gap: 2px;">
+        <div style="width: {{ distribution.exchange_pct / distribution.top10_pct * 100 }}%; background: var(--orange); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: white; min-width: 30px;">
+            {{ distribution.exchange_pct }}%
+        </div>
+        <div style="width: {{ distribution.whale_pct / distribution.top10_pct * 100 }}%; background: var(--red); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: white; min-width: 30px;">
+            {{ distribution.whale_pct }}%
+        </div>
+        <div style="width: {{ distribution.contract_pct / distribution.top10_pct * 100 }}%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: white; min-width: 30px;">
+            {{ distribution.contract_pct }}%
+        </div>
+        <div style="width: {{ distribution.eoa_pct / distribution.top10_pct * 100 }}%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: white; min-width: 30px;">
+            {{ distribution.eoa_pct }}%
+        </div>
+    </div>
+    <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.78rem;">
+        <span style="color: var(--orange);">&#9632; Exchange</span>
+        <span style="color: var(--red);">&#9632; Whale</span>
+        <span style="color: var(--blue);">&#9632; Contract</span>
+        <span style="color: var(--green);">&#9632; EOA</span>
+    </div>
+</div>
+
+<!-- Concentration Analysis -->
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Concentration Risk</span>
+        </div>
+        {% if distribution.top10_pct > 60 %}
+        <div class="alert alert-error">
+            High concentration: Top 10 hold {{ distribution.top10_pct }}% of supply. Significant whale risk.
+        </div>
+        {% elif distribution.top10_pct > 35 %}
+        <div class="alert alert-warning">
+            Moderate concentration: Top 10 hold {{ distribution.top10_pct }}% of supply. Monitor closely.
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            Low concentration: Top 10 hold {{ distribution.top10_pct }}% of supply. Healthy distribution.
+        </div>
+        {% endif %}
+        <table>
+            <tr>
+                <td class="text-muted">Top 1 Holder</td>
+                <td>{{ holders[0].percentage }}%</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Top 5 Combined</td>
+                <td>{{ "%.2f"|format(holders[:5]|sum(attribute='percentage')) }}%</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Top 10 Combined</td>
+                <td>{{ distribution.top10_pct }}%</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Holder Tiers</span>
+        </div>
+        {% set whales = holders|selectattr('percentage', 'ge', 1.0)|list %}
+        {% set dolphins = holders|selectattr('percentage', 'ge', 0.1)|rejectattr('percentage', 'ge', 1.0)|list %}
+        {% set fish = holders|rejectattr('percentage', 'ge', 0.1)|list %}
+        <table>
+            <tr>
+                <td><span class="badge badge-critical">Whale</span></td>
+                <td>&ge;1% supply</td>
+                <td class="fw-bold">{{ whales|length }} holders</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-medium">Dolphin</span></td>
+                <td>&ge;0.1% supply</td>
+                <td class="fw-bold">{{ dolphins|length }} holders</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-good">Fish</span></td>
+                <td>&lt;0.1% supply</td>
+                <td class="fw-bold">{{ fish|length }} holders</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Top Holders Table -->
+<div class="section-header">
+    <span class="section-title">Top 10 Holders</span>
+    <span class="section-subtitle">Sorted by balance</span>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Address</th>
+                <th>Type</th>
+                <th class="text-right">Balance</th>
+                <th class="text-right">% of Supply</th>
+                <th>Share</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for holder in holders %}
+            <tr>
+                <td>#{{ holder.rank }}</td>
+                <td class="mono">{{ holder.address }}</td>
+                <td>
+                    <span class="badge type-{{ holder.type }}">{{ holder.type }}</span>
+                </td>
+                <td class="text-right mono">{{ holder.balance }}</td>
+                <td class="text-right fw-bold">{{ holder.percentage }}%</td>
+                <td style="width: 120px;">
+                    <div class="score-bar">
+                        <div class="score-bar-fill"
+                             style="width: {{ (holder.percentage / holders[0].percentage * 100)|round }}%;
+                                    background: {% if holder.type == 'exchange' %}var(--orange){% elif holder.type == 'whale' %}var(--red){% elif holder.type == 'contract' %}var(--blue){% else %}var(--green){% endif %};"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

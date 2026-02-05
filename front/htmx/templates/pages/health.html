@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}{{ token.symbol }} - Health Score{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Token Health Score</h1>
+    <p class="page-description">Composite health assessment based on holder count, concentration, growth, whale stability, and wallet distribution.</p>
+</div>
+
+<!-- Token Header -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+</div>
+
+{% set h = health %}
+
+<!-- Main Score Display -->
+<div class="grid-3 mb-3">
+    <div class="card metric" style="grid-column: span 1;">
+        <div class="gauge-wrap">
+            <div class="gauge-ring"
+                 style="border-color: {% if h.overall_score >= 80 %}var(--green){% elif h.overall_score >= 60 %}#5cb85c{% elif h.overall_score >= 40 %}var(--yellow){% elif h.overall_score >= 20 %}var(--orange){% else %}var(--red){% endif %};">
+                <div>
+                    <div class="gauge-value"
+                         style="color: {% if h.overall_score >= 80 %}var(--green){% elif h.overall_score >= 60 %}#5cb85c{% elif h.overall_score >= 40 %}var(--yellow){% elif h.overall_score >= 20 %}var(--orange){% else %}var(--red){% endif %};">
+                        {{ h.overall_score }}
+                    </div>
+                    <div class="gauge-label">/ 100</div>
+                </div>
+            </div>
+        </div>
+        <div class="metric-label">Overall Health Score</div>
+    </div>
+
+    <div class="card metric">
+        <div style="padding: 1.5rem 0;">
+            <div class="grade-display grade-{{ h.grade }}">{{ h.grade }}</div>
+        </div>
+        <div class="metric-label">Grade</div>
+    </div>
+
+    <div class="card">
+        <div style="padding: 1rem;">
+            <div class="metric text-center mb-2">
+                <div class="metric-value"
+                     style="color: {% if h.risk_level == 'Low' %}var(--green){% elif h.risk_level == 'Medium' %}var(--yellow){% elif h.risk_level == 'High' %}var(--orange){% else %}var(--red){% endif %};">
+                    {{ h.risk_level }}
+                </div>
+                <div class="metric-label">Risk Level</div>
+            </div>
+            <hr class="divider" style="margin: 0.75rem 0;">
+            <div class="metric text-center">
+                <div class="metric-value">{{ "{:,}".format(h.holder_count) }}</div>
+                <div class="metric-label">Total Holders</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assessment -->
+{% if h.overall_score >= 80 %}
+<div class="alert alert-success mb-3">
+    <strong>Excellent:</strong> Strong fundamentals across all metrics. This token shows healthy decentralization and stable whale behavior.
+</div>
+{% elif h.overall_score >= 60 %}
+<div class="alert alert-info mb-3">
+    <strong>Good:</strong> Solid metrics overall with some areas for improvement. The token demonstrates reasonable health indicators.
+</div>
+{% elif h.overall_score >= 40 %}
+<div class="alert alert-warning mb-3">
+    <strong>Fair:</strong> Some concerning metrics detected. Review component breakdown for specific risk areas.
+</div>
+{% else %}
+<div class="alert alert-error mb-3">
+    <strong>Poor:</strong> Significant red flags in multiple areas. Exercise extreme caution with this token.
+</div>
+{% endif %}
+
+<hr class="divider">
+
+<!-- Component Breakdown -->
+<div class="section-header">
+    <span class="section-title">Component Breakdown</span>
+    <span class="section-subtitle">Five weighted metrics</span>
+</div>
+
+<div class="card mb-3">
+    {% for key, comp in h.components.items() %}
+    <div class="progress-row">
+        <span class="progress-label">{{ key|replace('_', ' ')|title }}</span>
+        <div class="progress-bar">
+            <div class="progress-fill"
+                 style="width: {{ comp.score }}%;
+                        background: {% if comp.score >= 80 %}#28a745{% elif comp.score >= 60 %}#5cb85c{% elif comp.score >= 40 %}#ffc107{% elif comp.score >= 20 %}#fd7e14{% else %}#dc3545{% endif %};">
+                {{ comp.score|round(1) }}
+            </div>
+        </div>
+        <span class="progress-weight">{{ comp.weight }}%</span>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Component Details Table -->
+<div class="table-wrap mb-3">
+    <table>
+        <thead>
+            <tr>
+                <th>Component</th>
+                <th class="text-right">Score</th>
+                <th class="text-right">Weight</th>
+                <th>Status</th>
+                <th class="text-right">Weighted</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, comp in h.components.items() %}
+            <tr>
+                <td>{{ key|replace('_', ' ')|title }}</td>
+                <td class="text-right fw-bold">{{ comp.score|round(1) }} / 100</td>
+                <td class="text-right">{{ comp.weight }}%</td>
+                <td>
+                    <span class="badge {% if comp.status == 'Good' %}badge-good{% elif comp.status == 'Fair' %}badge-medium{% else %}badge-high{% endif %}">
+                        {{ comp.status }}
+                    </span>
+                </td>
+                <td class="text-right">{{ (comp.score * comp.weight / 100)|round(1) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<hr class="divider">
+
+<!-- Risk & Positive Factors -->
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Risk Factors</span>
+        </div>
+        {% if h.risk_factors %}
+        <ul class="factor-list">
+            {% for factor in h.risk_factors %}
+            <li class="factor-item">
+                <span class="factor-icon-risk">&#9888;</span>
+                <span>{{ factor }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="alert alert-success">No significant risk factors identified.</div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Positive Indicators</span>
+        </div>
+        {% if h.positive_factors %}
+        <ul class="factor-list">
+            {% for factor in h.positive_factors %}
+            <li class="factor-item">
+                <span class="factor-icon-positive">&#10003;</span>
+                <span>{{ factor }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="alert alert-info">No notable positive factors.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Methodology -->
+<details>
+    <summary>Scoring Methodology</summary>
+    <div class="details-content">
+        <p>The Token Health Score is a weighted composite of five key metrics:</p>
+        <table>
+            <thead>
+                <tr><th>Component</th><th>Weight</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Holder Count</td><td>20%</td><td>More holders = healthier, more established token</td></tr>
+                <tr><td>Concentration</td><td>25%</td><td>Lower concentration = more decentralized (Gini + Top-10)</td></tr>
+                <tr><td>Growth Trend</td><td>20%</td><td>Positive holder growth with low volatility</td></tr>
+                <tr><td>Whale Stability</td><td>20%</td><td>Stable whale holdings = less manipulation risk</td></tr>
+                <tr><td>Contract Ratio</td><td>15%</td><td>Higher EOA ratio = more real users vs bots</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 1rem;"><strong>Grade Scale:</strong></p>
+        <table>
+            <thead>
+                <tr><th>Score</th><th>Grade</th><th>Risk</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>80-100</td><td>A</td><td>Low</td><td>Excellent - Strong fundamentals</td></tr>
+                <tr><td>60-79</td><td>B</td><td>Medium</td><td>Good - Solid metrics</td></tr>
+                <tr><td>40-59</td><td>C</td><td>High</td><td>Fair - Some concerns</td></tr>
+                <tr><td>20-39</td><td>D</td><td>High</td><td>Poor - Significant risks</td></tr>
+                <tr><td>0-19</td><td>F</td><td>Critical</td><td>Critical - Major red flags</td></tr>
+            </tbody>
+        </table>
+    </div>
+</details>
+{% endblock %}

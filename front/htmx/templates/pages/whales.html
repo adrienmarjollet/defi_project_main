@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}{{ token.symbol }} - Whale Tracking{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Whale Tracking</h1>
+    <p class="page-description">Monitor top holders, accumulation/distribution patterns, and significant movements.</p>
+</div>
+
+<!-- Token Header -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+</div>
+
+{% set wd = whale_data %}
+
+<!-- Whale Metrics -->
+<div class="grid-4 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ wd.total_concentration }}%</div>
+        <div class="metric-label">Total Whale Concentration</div>
+        <div class="metric-delta {% if wd.concentration_change < 0 %}delta-negative{% else %}delta-positive{% endif %}">
+            {{ "%+.1f"|format(wd.concentration_change) }}%
+        </div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-green">{{ wd.accumulating }}</div>
+        <div class="metric-label">Accumulating Whales</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-red">{{ wd.distributing }}</div>
+        <div class="metric-label">Distributing Whales</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ wd.stability_score }}/100</div>
+        <div class="metric-label">Stability Score</div>
+        <div class="score-bar">
+            <div class="score-bar-fill"
+                 style="width: {{ wd.stability_score }}%;
+                        background: {% if wd.stability_score >= 70 %}var(--green){% elif wd.stability_score >= 40 %}var(--yellow){% else %}var(--red){% endif %};"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Pattern & Stability Assessment -->
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Pattern Analysis</span>
+        </div>
+        {% if 'Accumulation' in wd.pattern %}
+        <div class="alert alert-success">
+            <strong>{{ wd.pattern }}</strong> - Whales are increasing their holdings, indicating confidence.
+        </div>
+        {% elif 'Distribution' in wd.pattern %}
+        <div class="alert alert-warning">
+            <strong>{{ wd.pattern }}</strong> - Some whales are reducing positions. Monitor for sell pressure.
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <strong>{{ wd.pattern }}</strong> - Whale holdings are relatively stable.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Stability Assessment</span>
+        </div>
+        {% if wd.stability_score > 80 %}
+        <div class="alert alert-success">
+            <strong>High Stability ({{ wd.stability_score }}/100)</strong> - Whales holding steady. Low manipulation risk.
+        </div>
+        {% elif wd.stability_score > 50 %}
+        <div class="alert alert-info">
+            <strong>Moderate Stability ({{ wd.stability_score }}/100)</strong> - Some whale movement. Keep monitoring.
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <strong>Low Stability ({{ wd.stability_score }}/100)</strong> - Active whale repositioning. Exercise caution.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Whale Activity Feed -->
+<div class="section-header">
+    <span class="section-title">Movement Alerts</span>
+    <span class="section-subtitle">Significant balance changes (&gt;5%)</span>
+</div>
+
+<div class="mb-3">
+    {% for alert in wd.alerts %}
+    <div class="activity-item">
+        <div class="activity-icon {% if alert.action == 'accumulated' %}icon-up{% else %}icon-down{% endif %}">
+            {% if alert.action == 'accumulated' %}^{% else %}v{% endif %}
+        </div>
+        <div class="activity-content">
+            <div class="activity-title">
+                <code>{{ alert.address }}</code>
+                {{ alert.action }}
+                <strong>{{ "%+.1f"|format(alert.change) }}%</strong> of holdings
+            </div>
+            <div class="activity-meta">
+                <span class="badge badge-{{ alert.severity }}">{{ alert.severity }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% if not wd.alerts %}
+    <div class="alert alert-success">No significant whale movements detected in this period.</div>
+    {% endif %}
+</div>
+
+<hr class="divider">
+
+<!-- Top Whales Table -->
+<div class="section-header">
+    <span class="section-title">Current Top Whales</span>
+    <span class="section-subtitle">{{ wd.whales|length }} tracked</span>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Address</th>
+                <th class="text-right">Balance</th>
+                <th class="text-right">% Supply</th>
+                <th class="text-right">Change</th>
+                <th>Trend</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for whale in wd.whales %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td class="mono">{{ whale.address }}</td>
+                <td class="text-right">{{ whale.balance }}</td>
+                <td class="text-right fw-bold">{{ whale.pct }}%</td>
+                <td class="text-right {% if whale.change.startswith('+') %}text-green{% elif whale.change.startswith('-') %}text-red{% else %}text-muted{% endif %}">
+                    {{ whale.change }}
+                </td>
+                <td>
+                    {% if whale.trend == 'up' %}
+                    <span class="text-green">&#9650; Accumulating</span>
+                    {% elif whale.trend == 'down' %}
+                    <span class="text-red">&#9660; Distributing</span>
+                    {% else %}
+                    <span class="text-muted">&#9644; Stable</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<hr class="divider">
+
+<!-- Concentration Risk -->
+<div class="grid-3">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Concentration Risk</span>
+        </div>
+        {% if wd.total_concentration < 30 %}
+        <div class="alert alert-success">Low concentration ({{ wd.total_concentration }}%) - healthy distribution</div>
+        {% elif wd.total_concentration < 60 %}
+        <div class="alert alert-warning">Moderate concentration ({{ wd.total_concentration }}%) - monitor closely</div>
+        {% else %}
+        <div class="alert alert-error">High concentration ({{ wd.total_concentration }}%) - significant whale risk</div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Movement Activity</span>
+        </div>
+        {% if wd.alerts|length == 0 %}
+        <div class="alert alert-success">Calm period - no significant movements</div>
+        {% elif wd.alerts|length < 5 %}
+        <div class="alert alert-info">Moderate activity - {{ wd.alerts|length }} significant movements</div>
+        {% else %}
+        <div class="alert alert-warning">High activity - {{ wd.alerts|length }} significant movements detected</div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Net Flow</span>
+        </div>
+        {% set net = wd.accumulating - wd.distributing %}
+        {% if net > 0 %}
+        <div class="alert alert-success">Net accumulation trend ({{ wd.accumulating }} accumulating vs {{ wd.distributing }} distributing)</div>
+        {% elif net < 0 %}
+        <div class="alert alert-error">Net distribution trend ({{ wd.distributing }} distributing vs {{ wd.accumulating }} accumulating)</div>
+        {% else %}
+        <div class="alert alert-info">Balanced whale flow</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

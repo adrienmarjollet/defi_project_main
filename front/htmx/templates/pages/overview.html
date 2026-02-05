@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ token.symbol }} - Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Token Overview</h1>
+    <p class="page-description">Basic metadata and key metrics for this token.</p>
+</div>
+
+<!-- Token Header -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+    <div class="token-details">
+        <div>
+            <span class="token-detail-label">Address: </span>
+            <code>{{ token.address[:10] }}...{{ token.address[-6:] }}</code>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="grid-4 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ token.symbol }}</div>
+        <div class="metric-label">Symbol</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ token.decimals }}</div>
+        <div class="metric-label">Decimals</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ token.total_supply }}</div>
+        <div class="metric-label">Total Supply</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ "{:,}".format(token.holder_count) }}</div>
+        <div class="metric-label">Holders</div>
+    </div>
+</div>
+
+<!-- Token Details Card -->
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Contract Information</span>
+        </div>
+        <table>
+            <tr>
+                <td class="text-muted">Name</td>
+                <td>{{ token.name }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Symbol</td>
+                <td>{{ token.symbol }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Contract Address</td>
+                <td class="mono">{{ token.address }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Chain</td>
+                <td>{{ chain_info.name }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Decimals</td>
+                <td>{{ token.decimals }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Total Supply</td>
+                <td>{{ token.total_supply }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Quick Navigation</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <a href="/holders?token={{ token_address }}&chain={{ chain }}" class="btn btn-outline">
+                Holder Analysis &rarr;
+            </a>
+            <a href="/whales?token={{ token_address }}&chain={{ chain }}" class="btn btn-outline">
+                Whale Tracking &rarr;
+            </a>
+            <a href="/health?token={{ token_address }}&chain={{ chain }}" class="btn btn-outline">
+                Health Score &rarr;
+            </a>
+            <a href="/suspicious?token={{ token_address }}&chain={{ chain }}" class="btn btn-outline">
+                Suspicious Activity &rarr;
+            </a>
+            <a href="/price?token={{ token_address }}&chain={{ chain }}" class="btn btn-outline">
+                Price History &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+
+<hr class="divider">
+
+<!-- Explorer Link -->
+<div class="text-center">
+    <a href="{{ chain_info.explorer }}/token/{{ token_address }}" target="_blank" rel="noopener" class="btn btn-outline">
+        View on {{ chain_info.name }} Explorer &nearr;
+    </a>
+</div>
+{% endblock %}

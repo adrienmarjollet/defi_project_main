@@ -1,0 +1,43 @@
+<!-- Price Chart Partial (returned via HTMX) -->
+{% set pd = price_data %}
+
+<div class="grid-4 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ pd.current_price }}</div>
+        <div class="metric-label">Price</div>
+        <div class="metric-delta {% if pd.price_change >= 0 %}delta-positive{% else %}delta-negative{% endif %}">
+            {{ "%+.1f"|format(pd.price_change_pct) }}%
+        </div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-green">{{ pd.high_30d }}</div>
+        <div class="metric-label">30d High</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-red">{{ pd.low_30d }}</div>
+        <div class="metric-label">30d Low</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ pd.avg_volume }}</div>
+        <div class="metric-label">Avg Volume</div>
+    </div>
+</div>
+
+<div class="card">
+    {% set max_price = pd.prices|map(attribute='price')|max %}
+    {% set min_price = pd.prices|map(attribute='price')|min %}
+    {% set price_range = max_price - min_price %}
+
+    {% for p in pd.prices[-14:] %}
+    {% set bar_width = ((p.price - min_price) / price_range * 80 + 10) if price_range > 0 else 50 %}
+    {% set prev_price = pd.prices[loop.index0 - 1].price if loop.index0 > 0 else p.price %}
+    <div class="price-bar-row">
+        <span class="price-bar-label">{{ p.date[-5:] }}</span>
+        <div class="price-bar"
+             style="width: {{ bar_width }}%;
+                    background: {% if p.price >= prev_price %}rgba(34, 197, 94, 0.3){% else %}rgba(239, 68, 68, 0.3){% endif %};">
+        </div>
+        <span class="price-bar-value">${{ "{:,.2f}".format(p.price) }}</span>
+    </div>
+    {% endfor %}
+</div>

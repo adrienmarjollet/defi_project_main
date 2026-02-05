@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ token.symbol }} - Suspicious Activity{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Suspicious Activity Detection</h1>
+    <p class="page-description">Comprehensive analysis to detect manipulation patterns: wash trading, Sybil clusters, concentration spikes, and dump patterns.</p>
+</div>
+
+<!-- Token Header -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+</div>
+
+{% set r = report %}
+
+<!-- Main Risk Display -->
+<div class="grid-3 mb-3">
+    <div class="card metric">
+        <div class="gauge-wrap">
+            <div class="gauge-ring"
+                 style="border-color: {% if r.overall_risk_score >= 70 %}var(--red){% elif r.overall_risk_score >= 50 %}var(--orange){% elif r.overall_risk_score >= 30 %}var(--yellow){% else %}var(--green){% endif %};">
+                <div>
+                    <div class="gauge-value"
+                         style="color: {% if r.overall_risk_score >= 70 %}var(--red){% elif r.overall_risk_score >= 50 %}var(--orange){% elif r.overall_risk_score >= 30 %}var(--yellow){% else %}var(--green){% endif %};">
+                        {{ r.overall_risk_score|round(1) }}
+                    </div>
+                    <div class="gauge-label">/ 100</div>
+                </div>
+            </div>
+        </div>
+        <div class="metric-label">Risk Score</div>
+    </div>
+
+    <div class="card metric">
+        <div style="padding: 1.5rem 0;">
+            <div class="metric-value" style="font-size: 2rem;
+                 color: {% if r.risk_level == 'Low' %}var(--green){% elif r.risk_level == 'Medium' %}var(--yellow){% elif r.risk_level == 'High' %}var(--orange){% else %}var(--red){% endif %};">
+                {{ r.risk_level }}
+            </div>
+        </div>
+        <div class="metric-label">Risk Level</div>
+    </div>
+
+    <div class="card metric">
+        <div style="padding: 1.5rem 0;">
+            <div class="metric-value">{{ r.total_flags }}</div>
+        </div>
+        <div class="metric-label">Total Flags</div>
+    </div>
+</div>
+
+<!-- Risk Assessment -->
+{% if r.risk_level == 'Critical' %}
+<div class="alert alert-error mb-3">
+    <strong>Critical Risk:</strong> Multiple severe manipulation indicators detected. This token shows strong signs of artificial activity.
+</div>
+{% elif r.risk_level == 'High' %}
+<div class="alert alert-warning mb-3">
+    <strong>High Risk:</strong> Significant suspicious patterns found. Proceed with extreme caution.
+</div>
+{% elif r.risk_level == 'Medium' %}
+<div class="alert alert-info mb-3">
+    <strong>Medium Risk:</strong> Some suspicious patterns detected. Review individual findings below.
+</div>
+{% else %}
+<div class="alert alert-success mb-3">
+    <strong>Low Risk:</strong> No major red flags detected. Token activity appears organic.
+</div>
+{% endif %}
+
+<!-- Severity Breakdown -->
+<div class="grid-4 mb-3">
+    <div class="card metric">
+        <div class="metric-value text-red">{{ r.critical_flags }}</div>
+        <div class="metric-label">Critical</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value" style="color: var(--orange);">{{ r.high_flags }}</div>
+        <div class="metric-label">High</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-yellow">{{ r.medium_flags }}</div>
+        <div class="metric-label">Medium</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-blue">{{ r.low_flags }}</div>
+        <div class="metric-label">Low</div>
+    </div>
+</div>
+
+<hr class="divider">
+
+<!-- Detected Activities -->
+<div class="section-header">
+    <span class="section-title">Detected Activities</span>
+    <span class="section-subtitle">{{ r.activities|length }} findings</span>
+</div>
+
+{% if r.activities %}
+    {% for activity in r.activities %}
+    <div class="sus-card sus-card-{{ activity.severity }}">
+        <div class="sus-header">
+            <span class="sus-type">{{ activity.type }}</span>
+            <span class="badge badge-{{ activity.severity }}">{{ activity.severity }}</span>
+        </div>
+        <div class="sus-desc">{{ activity.description }}</div>
+        <div class="sus-meta">
+            Risk contribution: <strong>{{ activity.risk_score }}</strong> points
+            {% if activity.addresses %}
+            &middot; {{ activity.addresses|length }} address{{ 'es' if activity.addresses|length != 1 else '' }} involved
+            {% endif %}
+        </div>
+        {% if activity.addresses %}
+        <details style="margin-top: 0.5rem; border: none;">
+            <summary style="background: transparent; padding: 0.25rem 0; font-size: 0.8rem;">Show involved addresses</summary>
+            <div class="details-content" style="padding: 0.5rem 0;">
+                {% for addr in activity.addresses %}
+                <code>{{ addr }}</code>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-success">
+        No suspicious activities detected. Token activity appears healthy and organic.
+    </div>
+{% endif %}
+
+<hr class="divider">
+
+<!-- Detection Methodology -->
+<details>
+    <summary>Detection Methodology</summary>
+    <div class="details-content">
+        <p>This analysis uses multiple detection methods to identify potential manipulation:</p>
+        <table>
+            <thead>
+                <tr><th>Detection Type</th><th>Description</th><th>Severity Impact</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Wash Trading</td><td>Circular transfer patterns between wallets</td><td>High if &gt;5 cycles</td></tr>
+                <tr><td>Concentration Spike</td><td>Single wallets holding excessive supply</td><td>High if &gt;15% single wallet</td></tr>
+                <tr><td>Coordinated Wallets</td><td>Wallets with similar balances or timing</td><td>Medium-High based on %</td></tr>
+                <tr><td>Dump Pattern</td><td>Multiple whales distributing simultaneously</td><td>Medium-High</td></tr>
+                <tr><td>Sybil Cluster</td><td>Multiple wallets with identical balances</td><td>Medium-High based on count</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 1rem;"><strong>Risk Score Ranges:</strong></p>
+        <table>
+            <thead>
+                <tr><th>Score</th><th>Level</th><th>Interpretation</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>0-29</td><td>Low</td><td>No major red flags</td></tr>
+                <tr><td>30-49</td><td>Medium</td><td>Some suspicious patterns</td></tr>
+                <tr><td>50-69</td><td>High</td><td>Significant manipulation indicators</td></tr>
+                <tr><td>70-100</td><td>Critical</td><td>Multiple severe red flags</td></tr>
+            </tbody>
+        </table>
+    </div>
+</details>
+{% endblock %}

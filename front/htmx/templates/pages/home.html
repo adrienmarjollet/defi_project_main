@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}DeFi Analytics - Multi-Chain Token Analysis{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1 class="hero-title">DeFi Analytics</h1>
+    <p class="hero-subtitle">
+        Multi-chain token analysis for Ethereum, BSC, and Solana.
+        Enter a token address to explore holders, whales, health scores, and suspicious activity.
+    </p>
+
+    <!-- Token Search Form -->
+    <div class="search-box">
+        <form hx-post="/partials/token-search"
+              hx-target="body"
+              hx-indicator="#htmx-indicator">
+
+            <div class="search-row">
+                <div class="form-group">
+                    <label class="form-label" for="token-input">Token Address</label>
+                    <input type="text"
+                           id="token-input"
+                           name="token_address"
+                           class="input-token"
+                           placeholder="0x..."
+                           value="{{ token_address or '' }}"
+                           required>
+                </div>
+                <div class="form-group" style="min-width: 160px;">
+                    <label class="form-label" for="chain-select">Chain</label>
+                    <select id="chain-select" name="chain">
+                        {% for chain_id, info in chains.items() %}
+                        <option value="{{ chain_id }}" {% if chain == chain_id %}selected{% endif %}>
+                            {{ info.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-lg">Analyze</button>
+                </div>
+            </div>
+
+            <!-- Quick Token Select -->
+            <div class="quick-tokens">
+                <span class="quick-tokens-label">Quick Select (Ethereum):</span>
+                {% for symbol, address in common_tokens.items() %}
+                <button type="button"
+                        class="btn btn-token"
+                        onclick="document.getElementById('token-input').value='{{ address }}'; document.getElementById('chain-select').value='ethereum';">
+                    {{ symbol }}
+                </button>
+                {% endfor %}
+            </div>
+        </form>
+
+        {% if error %}
+        <div class="alert alert-error mt-2">{{ error }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Features Overview -->
+    <div class="features">
+        <div class="card feature-card">
+            <span class="feature-icon">&#9678;</span>
+            <div class="feature-title">Token Overview</div>
+            <div class="feature-desc">Basic token metadata, supply info, and holder counts</div>
+        </div>
+        <div class="card feature-card">
+            <span class="feature-icon">&#9632;</span>
+            <div class="feature-title">Holder Analysis</div>
+            <div class="feature-desc">Distribution breakdown by wallet type and concentration</div>
+        </div>
+        <div class="card feature-card">
+            <span class="feature-icon">&#9650;</span>
+            <div class="feature-title">Whale Tracking</div>
+            <div class="feature-desc">Monitor top holders, accumulation patterns, and movements</div>
+        </div>
+        <div class="card feature-card">
+            <span class="feature-icon">&#9829;</span>
+            <div class="feature-title">Health Score</div>
+            <div class="feature-desc">Composite 0-100 score with component breakdown</div>
+        </div>
+        <div class="card feature-card">
+            <span class="feature-icon">&#9888;</span>
+            <div class="feature-title">Suspicious Activity</div>
+            <div class="feature-desc">Detect wash trading, Sybil clusters, and dump patterns</div>
+        </div>
+        <div class="card feature-card">
+            <span class="feature-icon">&#8593;</span>
+            <div class="feature-title">Price History</div>
+            <div class="feature-desc">30-day price trends, volume data, and performance metrics</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

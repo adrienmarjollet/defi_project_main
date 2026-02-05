@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DeFi Analytics{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="/">DeFi Analytics</a>
+        </div>
+
+        {% if token_address %}
+        <div class="nav-links">
+            <a href="/overview?token={{ token_address }}&chain={{ chain }}"
+               class="nav-link {% if request.path == '/overview' %}active{% endif %}">
+                Overview
+            </a>
+            <a href="/holders?token={{ token_address }}&chain={{ chain }}"
+               class="nav-link {% if request.path == '/holders' %}active{% endif %}">
+                Holders
+            </a>
+            <a href="/whales?token={{ token_address }}&chain={{ chain }}"
+               class="nav-link {% if request.path == '/whales' %}active{% endif %}">
+                Whales
+            </a>
+            <a href="/health?token={{ token_address }}&chain={{ chain }}"
+               class="nav-link {% if request.path == '/health' %}active{% endif %}">
+                Health
+            </a>
+            <a href="/suspicious?token={{ token_address }}&chain={{ chain }}"
+               class="nav-link {% if request.path == '/suspicious' %}active{% endif %}">
+                Suspicious
+            </a>
+            <a href="/price?token={{ token_address }}&chain={{ chain }}"
+               class="nav-link {% if request.path == '/price' %}active{% endif %}">
+                Price
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="nav-token-info">
+            {% if token_address %}
+            <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+            <code class="token-addr">{{ token_address[:6] }}...{{ token_address[-4:] }}</code>
+            <a href="/" class="btn btn-sm btn-outline">Change</a>
+            {% else %}
+            <span class="nav-hint">Enter a token to begin</span>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>DeFi Analytics &middot; Multi-Chain Token Analysis &middot; Demo Mode</p>
+    </footer>
+
+    <!-- HTMX loading indicator -->
+    <div id="htmx-indicator" class="htmx-indicator">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

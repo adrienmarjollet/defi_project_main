@@ -1,0 +1,48 @@
+<!-- Holder Table Partial (returned via HTMX) -->
+<div class="grid-5 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ distribution.top10_pct }}%</div>
+        <div class="metric-label">Top 10 Hold</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-yellow">{{ distribution.exchange_pct }}%</div>
+        <div class="metric-label">Exchanges</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-red">{{ distribution.whale_pct }}%</div>
+        <div class="metric-label">Whales</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-blue">{{ distribution.contract_pct }}%</div>
+        <div class="metric-label">Contracts</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-green">{{ distribution.eoa_pct }}%</div>
+        <div class="metric-label">EOA Users</div>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Address</th>
+                <th>Type</th>
+                <th class="text-right">Balance</th>
+                <th class="text-right">% of Supply</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for holder in holders %}
+            <tr>
+                <td>#{{ holder.rank }}</td>
+                <td class="mono">{{ holder.address }}</td>
+                <td><span class="badge type-{{ holder.type }}">{{ holder.type }}</span></td>
+                <td class="text-right mono">{{ holder.balance }}</td>
+                <td class="text-right fw-bold">{{ holder.percentage }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

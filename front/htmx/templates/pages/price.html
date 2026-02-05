@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}{{ token.symbol }} - Price History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Price History</h1>
+    <p class="page-description">30-day price trends, performance metrics, and volume data.</p>
+</div>
+
+<!-- Token Header -->
+<div class="token-header">
+    <div>
+        <div class="token-symbol">{{ token.symbol }}</div>
+        <div class="token-name">{{ token.name }}</div>
+    </div>
+    <span class="chain-badge chain-{{ chain }}">{{ chain_info.short }}</span>
+    <span class="demo-badge">Demo Data</span>
+</div>
+
+{% set pd = price_data %}
+
+<!-- Price Metrics -->
+<div class="grid-4 mb-3">
+    <div class="card metric">
+        <div class="metric-value">{{ pd.current_price }}</div>
+        <div class="metric-label">Current Price</div>
+        <div class="metric-delta {% if pd.price_change >= 0 %}delta-positive{% else %}delta-negative{% endif %}">
+            {{ "%+.2f"|format(pd.price_change) }} ({{ "%+.1f"|format(pd.price_change_pct) }}%)
+        </div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-green">{{ pd.high_30d }}</div>
+        <div class="metric-label">30d High</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value text-red">{{ pd.low_30d }}</div>
+        <div class="metric-label">30d Low</div>
+    </div>
+    <div class="card metric">
+        <div class="metric-value">{{ pd.avg_volume }}</div>
+        <div class="metric-label">Avg Daily Volume</div>
+    </div>
+</div>
+
+<!-- Price Performance -->
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">30-Day Performance</span>
+        </div>
+        {% if pd.price_change_pct > 10 %}
+        <div class="alert alert-success">
+            Strong uptrend: Price is up <strong>{{ pd.price_change_pct }}%</strong> over the past 30 days.
+        </div>
+        {% elif pd.price_change_pct > 0 %}
+        <div class="alert alert-info">
+            Slight uptick: Price has gained <strong>{{ pd.price_change_pct }}%</strong> over the past 30 days.
+        </div>
+        {% elif pd.price_change_pct > -10 %}
+        <div class="alert alert-warning">
+            Mild decline: Price is down <strong>{{ pd.price_change_pct }}%</strong> over the past 30 days.
+        </div>
+        {% else %}
+        <div class="alert alert-error">
+            Significant decline: Price has dropped <strong>{{ pd.price_change_pct }}%</strong> over the past 30 days.
+        </div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Key Levels</span>
+        </div>
+        <table>
+            <tr>
+                <td class="text-muted">Current</td>
+                <td class="fw-bold">{{ pd.current_price }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">30d High</td>
+                <td class="text-green">{{ pd.high_30d }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">30d Low</td>
+                <td class="text-red">{{ pd.low_30d }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">30d Change</td>
+                <td class="{% if pd.price_change >= 0 %}text-green{% else %}text-red{% endif %}">
+                    {{ "%+.2f"|format(pd.price_change) }} ({{ "%+.1f"|format(pd.price_change_pct) }}%)
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<hr class="divider">
+
+<!-- Price Chart (ASCII bar chart) -->
+<div class="section-header">
+    <span class="section-title">30-Day Price Chart</span>
+    <span class="section-subtitle">Daily closing prices</span>
+</div>
+
+<div class="card mb-3">
+    {% set max_price = pd.prices|map(attribute='price')|max %}
+    {% set min_price = pd.prices|map(attribute='price')|min %}
+    {% set price_range = max_price - min_price %}
+
+    {% for p in pd.prices %}
+    {% set bar_width = ((p.price - min_price) / price_range * 80 + 10) if price_range > 0 else 50 %}
+    {% set prev_price = pd.prices[loop.index0 - 1].price if loop.index0 > 0 else p.price %}
+    <div class="price-bar-row">
+        <span class="price-bar-label">{{ p.date[-5:] }}</span>
+        <div class="price-bar"
+             style="width: {{ bar_width }}%;
+                    background: {% if p.price >= prev_price %}rgba(34, 197, 94, 0.3){% else %}rgba(239, 68, 68, 0.3){% endif %};">
+        </div>
+        <span class="price-bar-value">${{ "{:,.2f}".format(p.price) }}</span>
+    </div>
+    {% endfor %}
+</div>
+
+<hr class="divider">
+
+<!-- Daily Data Table -->
+<div class="section-header">
+    <span class="section-title">Daily Data</span>
+    <span class="section-subtitle">Detailed price and volume</span>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th class="text-right">Price</th>
+                <th class="text-right">Change</th>
+                <th class="text-right">Volume</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pd.prices|reverse %}
+            {% set prev_price = pd.prices[loop.revindex].price if loop.revindex < pd.prices|length else p.price %}
+            {% set day_change = p.price - prev_price %}
+            {% set day_change_pct = (day_change / prev_price * 100) if prev_price > 0 else 0 %}
+            <tr>
+                <td>{{ p.date }}</td>
+                <td class="text-right mono">${{ "{:,.2f}".format(p.price) }}</td>
+                <td class="text-right {% if day_change >= 0 %}text-green{% else %}text-red{% endif %}">
+                    {{ "%+.1f"|format(day_change_pct) }}%
+                </td>
+                <td class="text-right mono">${{ "{:,.0f}".format(p.volume) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

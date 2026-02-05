@@ -37,6 +37,8 @@ dependencies = [
     # Testing utilities
     "pyfixture>=0.7",
     "pre-commit>=4.1.0",
+    # Web frontend (HTMX)
+    "flask>=3.0",
     # Build tools (keep for compatibility)
     "maturin>=1.8.1",
     "cryo>=0.3.2",
